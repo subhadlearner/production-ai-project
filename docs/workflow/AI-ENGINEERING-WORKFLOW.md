@@ -10,7 +10,7 @@ It describes:
 - when TDD is required
 - when to diagnose before fixing
 - when to run adversarial review
-- how DeepSeek, Sonnet, and Opus are routed
+- how GPT-5.6 Sol, GPT-5.6 Luna, DeepSeek, Claude Sonnet, and Claude Opus are routed
 - how verification, review, CI, and human approval fit together
 - how global and project-specific skills are consumed
 
@@ -79,19 +79,20 @@ review failure        → /fix → /verify → /review
 
 | Stage / Capability | Command | Primary Model / Agent | Supporting Agent / Skill | Purpose |
 | --- | --- | --- | --- | --- |
-| Product discovery | `/grill` | Claude Sonnet planner | `requirements-grilling` | Resolve ambiguous requirements and trade-offs |
-| PRD | `/prd` | Claude Sonnet planner | discovery brief if present | Formalize product requirements |
-| Architecture | `/architect` | Claude Sonnet planner | DeepSeek adversary; Opus escalation when approved | Lock production design and technology baseline |
-| Project initialization | `/project-init` | configured project-init workflow | Skill Coverage Matrix | Operationalize architecture into repo rules/configuration |
-| Specification | `/spec` | Claude Sonnet planner | DeepSeek adversary; Opus escalation when approved; TDD applicability | Create bounded implementation specs |
+| Product discovery | `/grill` | GPT-5.6 Sol planner | `requirements-grilling` | Resolve ambiguous requirements and trade-offs |
+| PRD | `/prd` | GPT-5.6 Sol planner | discovery brief if present | Formalize product requirements |
+| Architecture | `/architect` | GPT-5.6 Sol planner | DeepSeek default adversary; Sonnet/Opus optional | Lock production design and technology baseline |
+| Project initialization | `/project-init` | GPT-5.6 Luna | Skill Coverage Matrix | Operationalize architecture into repo rules/configuration |
+| Specification | `/spec` | GPT-5.6 Sol planner | DeepSeek default adversary; Sonnet/Opus optional; TDD applicability | Create bounded implementation specs |
 | Implementation | `/implement` | DeepSeek builder | `tdd` and technology skills | Implement one approved specification |
 | Verification | `/verify` | DeepSeek verification path | repository-defined checks | Produce deterministic DONE / NOT_DONE evidence |
 | Normal repair | `/fix` | DeepSeek debugger | `diagnosing-bugs` when needed | Apply the smallest safe correction |
 | Hard diagnosis | `/diagnose` | DeepSeek debugger | `diagnosing-bugs` | Reproduce, isolate, and establish root cause |
 | Pre-review | internal to `/review` | DeepSeek pre-reviewer | review rules | Cost-efficient production review |
-| Senior review | internal to `/review` | Claude Sonnet code-reviewer | pre-review report | Final AI code-review decision |
-| Adversarial review | `/adversarial-check` or risk-triggered inside architecture/spec | Sonnet orchestrator | DeepSeek adversary by default | Challenge high-risk decisions with fresh context |
-| Premium adversarial review | user-directed or internal escalation | Claude Opus adversary | direct when user requests; approval required when agent-proposed | Rare critical or user-selected premium second opinion |
+| Senior review | internal to `/review` | GPT-5.6 Sol code-reviewer | pre-review report | Final AI code-review decision |
+| Adversarial review | `/adversarial-check` or risk-triggered inside architecture/spec | GPT-5.6 Sol orchestrator | DeepSeek adversary by default | Challenge high-risk decisions with fresh context |
+| Cross-model adversarial review | user-directed or approved escalation | Claude Sonnet adversary | direct when user requests; approval when agent-proposed | Paid independent model-family second opinion |
+| Premium adversarial review | user-directed or approved escalation | Claude Opus adversary | direct when user requests; approval when agent-proposed | Rare critical or deliberately premium challenge |
 
 ---
 
@@ -114,7 +115,7 @@ Skip it for a small feature whose behavior and boundaries are already clear.
 
 ### Model
 
-Claude Sonnet planner.
+GPT-5.6 Sol planner.
 
 ### Skill
 
@@ -180,7 +181,7 @@ DISCOVERY_READY
 
 ### Model
 
-Claude Sonnet planner.
+GPT-5.6 Sol planner.
 
 ### Inputs
 
@@ -237,7 +238,7 @@ For large coupled product ambiguities, route back to `/grill`.
 
 ### Model
 
-Claude Sonnet planner.
+GPT-5.6 Sol planner.
 
 ### Inputs
 
@@ -293,24 +294,34 @@ Examples:
 The default challenge is:
 
 ```text
-Sonnet architecture
+GPT-5.6 Sol architecture
        ↓
 DeepSeek adversary
        ↓
-Sonnet reconciliation
+GPT-5.6 Sol reconciliation
 ```
 
-If the user explicitly requests Opus for the architecture review, the premium path may instead be:
+If the user explicitly requests Claude Sonnet:
 
 ```text
-Sonnet architecture
+GPT-5.6 Sol architecture
        ↓
-Opus adversary
+Claude Sonnet adversary
        ↓
-Sonnet reconciliation
+GPT-5.6 Sol reconciliation
 ```
 
-No prior DeepSeek pass is required for that user-directed invocation.
+If the user explicitly requests Claude Opus:
+
+```text
+GPT-5.6 Sol architecture
+       ↓
+Claude Opus adversary
+       ↓
+GPT-5.6 Sol reconciliation
+```
+
+No prior DeepSeek pass is required for either user-directed Claude invocation.
 
 The adversary receives only:
 
@@ -321,95 +332,175 @@ It does not receive the author's preferred conclusion or reasoning narrative.
 
 ---
 
-## 5. Adversarial Escalation Policy
+## 5. Model Strategy and Adversarial Escalation
 
-### Default adversary
+## 5.1 Why the workflow changed
+
+The workflow uses the user's connected ChatGPT Pro subscription for OpenAI models inside Kilo, while Anthropic models use a separate metered API budget.
+
+The goal is **not** to reduce reasoning quality or starve models of context.
+
+The goal is:
+
+> Use subscription-covered frontier reasoning for normal high-value work, cheap execution models for high-volume work, and paid Claude calls where independent model diversity or premium scrutiny genuinely adds value.
+
+## 5.2 Default model roles
+
+### GPT-5.6 Sol — primary frontier reasoner
+
+Use by default for:
+
+- `/grill`
+- `/prd`
+- `/architect`
+- `/spec`
+- adversarial reconciliation
+- senior code review
+
+Sol is the normal model for decisions where reasoning quality matters most.
+
+### GPT-5.6 Luna — lightweight operationalizer
+
+Use by default for:
+
+- `/project-init`
+- lightweight Ask/documentation/repository tasks
+
+Luna should apply already-approved decisions. It must not invent missing architecture decisions.
+
+### DeepSeek Flash — execution workhorse
+
+Use by default for:
+
+- `/implement`
+- `/verify`
+- `/fix`
+- `/diagnose`
+- default adversarial review
+- pre-review
+
+DeepSeek handles high-volume engineering work economically.
+
+### Claude Sonnet — optional paid independent second opinion
+
+Sonnet is no longer mandatory in the normal lifecycle.
+
+Use it when:
+
+- the user explicitly requests Sonnet, or
+- the GPT-5.6 Sol planner proposes an independent model-family review for a material decision and the user approves the paid call
+
+Typical uses:
+
+- architecture challenge
+- security/trust-boundary challenge
+- distributed consistency/concurrency challenge
+- migration/cutover challenge
+- specification challenge
+
+### Claude Opus — optional premium critical escalation
+
+Reserve Opus for:
+
+- user-directed premium review
+- rare critical agent-proposed adversarial escalation
+- rare architecture-authority escalation when Sol cannot responsibly settle the decision
+
+Agent-proposed Opus always requires explicit user approval.
+
+## 5.3 Adversarial routing
+
+### Default route
 
 ```text
-DeepSeek Flash
-```
-
-This is the normal cost-controlled adversarial second opinion.
-
-### Opus adversary
-
-```text
-Claude Opus
-```
-
-There are two valid ways Opus may be used:
-
-1. **Agent-proposed escalation** — after a DeepSeek adversarial pass, when the decision remains rare, critical, and materially risky.
-2. **User-directed premium review** — the user explicitly requests Opus for a specific architecture, specification, or other adversarial review.
-
-When the user explicitly requests Opus:
-
-- invoke Opus directly
-- the request itself authorizes that specific premium invocation
-- do not require a prior DeepSeek adversarial pass
-- do not require Sonnet to justify why Opus is warranted
-- do not add DeepSeek automatically unless the user asks for both
-
-### Opus escalation criteria
-
-Consider Opus only when one or more of these remain materially relevant after the default pass:
-
-- broad production authentication/authorization risk
-- cross-account IAM trust with major blast radius
-- irreversible/destructive migration
-- serious data-loss/corruption risk
-- non-obvious distributed consistency/concurrency/idempotency guarantees
-- public/external contract that is extremely expensive to reverse
-- recovery design with significant RTO/RPO consequence
-- security-sensitive infrastructure with high production impact
-- major irreversible platform lock-in or recurring-cost exposure
-- materially conflicting DeepSeek findings that Sonnet cannot confidently reconcile
-
-### Approval and routing
-
-There are two routing modes.
-
-#### Default / agent-proposed mode
-
-```text
-High-risk decision
+High-risk artifact
       ↓
 DeepSeek adversary
       ↓
-Sonnet reconciles
+GPT-5.6 Sol reconciliation
       ↓
-Still rare/critical/unresolved?
-   ├─ No → continue
-   └─ Yes
-        ↓
-Explain why Opus is justified
-        ↓
-Ask user approval
-        ↓
-Claude Opus adversary
-        ↓
-Sonnet reconciles
-        ↓
-continue or block/escalate
+continue / revise / block
 ```
 
-#### User-directed mode
+### User-directed Sonnet route
 
 ```text
-User: "Use Opus to adversarially review this architecture/spec"
+User: "Use Sonnet for this adversarial review"
+      ↓
+Claude Sonnet adversary
+      ↓
+GPT-5.6 Sol reconciliation
+```
+
+The user's explicit request authorizes that specific paid Sonnet invocation.
+No DeepSeek pass is required unless the user asks for both.
+
+### User-directed Opus route
+
+```text
+User: "Use Opus for this adversarial review"
       ↓
 Claude Opus adversary
       ↓
-Sonnet reconciles
-      ↓
-continue or block/escalate
+GPT-5.6 Sol reconciliation
 ```
 
-In user-directed mode, the explicit request is the authorization for that specific Opus call.
+The user's explicit request authorizes that specific premium Opus invocation.
+No DeepSeek or Sonnet pass is required unless the user asks for them.
 
-The Opus result is evidence, not authority.
+### Agent-proposed Sonnet escalation
 
-The owning workflow stage still makes the decision.
+After a DeepSeek pass, the Sol planner may propose Sonnet when material uncertainty remains and an independent model-family perspective would materially improve confidence.
+
+Before invoking it:
+
+1. explain what remains uncertain
+2. explain why cross-model review is useful
+3. ask for explicit user approval
+4. invoke Sonnet only after approval
+
+### Agent-proposed Opus escalation
+
+Propose Opus only for rare critical situations such as:
+
+- broad production auth/authz risk
+- cross-account IAM with high blast radius
+- destructive/irreversible migration
+- serious data-loss/corruption risk
+- non-obvious distributed consistency/idempotency guarantees
+- extremely expensive-to-reverse external contracts
+- recovery designs with material RTO/RPO consequences
+- security-sensitive infrastructure with high production impact
+- major irreversible platform lock-in or cost exposure
+- unresolved disagreement after cheaper reasoning paths
+
+Before invoking Opus:
+
+1. explain why DeepSeek + Sol, and any already-used Sonnet review, are insufficient
+2. ask for explicit user approval
+3. invoke Opus only after approval
+
+Claude findings are evidence, not authority.
+
+The owning workflow stage retains decision authority.
+
+## 5.4 Context-quality policy
+
+Do **not** shrink materially relevant context merely to save money or subscription usage.
+
+Use this rule:
+
+> Remove irrelevant context, not required context.
+
+For high-quality reasoning:
+
+- include all approved artifacts materially needed for the current decision
+- preserve relevant PRD requirements, discovery decisions, architecture, ADRs, invariants, specs, and repository evidence
+- exclude unrelated historical conversations, obsolete documents, duplicated text, unrelated source files, and irrelevant logs
+- use authoritative handoffs and targeted retrieval
+- if a decision genuinely needs a large context, use it rather than guessing
+
+The optimization target is **relevant context density**, not minimum tokens.
 
 ---
 
@@ -456,7 +547,7 @@ Reusable global skills should generally remain global instead of being copied in
 
 ### Model
 
-Claude Sonnet planner.
+GPT-5.6 Sol planner.
 
 ### Inputs
 
@@ -531,16 +622,16 @@ Reason: ...
 High-risk specs receive the same default adversarial pattern:
 
 ```text
-Sonnet spec
+GPT-5.6 Sol spec
    ↓
 DeepSeek adversary
    ↓
-Sonnet reconciliation
+GPT-5.6 Sol reconciliation
 ```
 
-If the user explicitly requests Opus for a specific spec review, Opus may be invoked directly without a prior DeepSeek pass.
+The user may directly request Claude Sonnet or Claude Opus for a specific spec adversarial review. No prior DeepSeek pass is required for a user-directed Claude invocation.
 
-When Opus is agent-proposed rather than user-selected, use the rare-critical escalation policy and request approval first.
+When Claude is agent-proposed rather than user-selected, explicit approval is required.
 
 ---
 
@@ -821,7 +912,7 @@ CHANGES_REQUIRED
 
 The senior reviewer is skipped to control cost.
 
-### Stage 2 — Sonnet senior review
+### Stage 2 — GPT-5.6 Sol senior review
 
 Runs only after:
 
@@ -1118,7 +1209,7 @@ Priorities:
 - make all major technology choices explicit
 - create ADRs for material decisions
 
-Use the normal cost-controlled adversarial policy for high-risk decisions.
+Use the normal cost-controlled adversarial policy for high-risk decisions. GPT-5.6 Sol is the architecture model; DeepSeek is the default adversary.
 ```
 
 User-directed Opus architecture review:
@@ -1355,6 +1446,17 @@ Challenge the DynamoDB idempotency and concurrency design in ADR-007 and the rel
 Try to find any sequence of concurrent requests, retries, or duplicate events that can violate the stated uniqueness/data-integrity guarantees.
 ```
 
+Direct user-selected Claude Sonnet:
+
+```text
+/adversarial-check
+
+Use Claude Sonnet directly for this review.
+
+Challenge ADR-007 and the related architecture section for concurrency, retry, idempotency, and data-integrity failures.
+I want an independent Anthropic-model second opinion.
+```
+
 Direct user-selected Opus:
 
 ```text
@@ -1379,7 +1481,7 @@ Run only after `/verify` returns `DONE`.
 Review the implementation of SPEC-012 using the latest successful verification result.
 
 Run the normal cost-controlled review pipeline:
-DeepSeek pre-review first, then Sonnet senior review only if the pre-review is clean.
+DeepSeek pre-review first, then GPT-5.6 Sol senior review only if the pre-review is clean.
 ```
 
 You normally do not invoke the internal `pre-reviewer` or `code-reviewer` directly.
@@ -1463,7 +1565,7 @@ I know what is wrong but not why → /diagnose
                               ▼                       │
                     ┌─────────────────┐               │
                     │ /grill          │               │
-                    │ Sonnet planner  │               │
+                    │ GPT-5.6 Sol planner  │               │
                     │ requirements-   │               │
                     │ grilling skill  │               │
                     └────────┬────────┘               │
@@ -1475,13 +1577,13 @@ I know what is wrong but not why → /diagnose
                                          ▼
                                ┌─────────────────┐
                                │ /prd            │
-                               │ Sonnet planner  │
+                               │ GPT-5.6 Sol planner  │
                                └────────┬────────┘
                                         │ PRD_READY
                                         ▼
                                ┌─────────────────┐
                                │ /architect      │
-                               │ Sonnet planner  │
+                               │ GPT-5.6 Sol planner  │
                                └────────┬────────┘
                                         │
                               high-risk architecture?
@@ -1524,7 +1626,7 @@ I know what is wrong but not why → /diagnose
                                 ▼
                        ┌──────────────────┐
                        │ /spec            │
-                       │ Sonnet planner   │
+                       │ GPT-5.6 Sol planner   │
                        │ decides TDD      │
                        └────────┬─────────┘
                                 │
@@ -1582,7 +1684,7 @@ I know what is wrong but not why → /diagnose
               │                      │
               ▼                      ▼
             /fix            ┌────────────────────┐
-              │             │ Sonnet reviewer    │
+              │             │ GPT-5.6 Sol reviewer    │
               │             └─────────┬──────────┘
               │                       │
               │              ┌────────┴─────────┐
