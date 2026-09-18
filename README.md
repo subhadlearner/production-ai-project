@@ -16,6 +16,48 @@ The standard lifecycle is:
 6. `/verify`
 7. `/review`
 
+## Final Workflow looks like this
+
+/prd
+  ↓
+PRD_READY
+  ↓
+/architect
+  ├─ ARCHITECTURE_BLOCKED → resolve → /architect
+  └─ ARCHITECTURE_READY
+            ↓
+      /project-init
+  ├─ PROJECT_INIT_BLOCKED → resolve
+  └─ PROJECT_INIT_READY
+            ↓
+          /spec
+  ├─ SPEC_BLOCKED
+  └─ SPEC_READY
+            ↓
+       /implement
+  ├─ IMPLEMENTATION_BLOCKED
+  └─ RUN_VERIFY
+            ↓
+         /verify
+  ├─ NOT_DONE → /fix → /verify
+  └─ DONE
+       ↓
+     /review
+       ↓
+DeepSeek pre-review
+  ├─ CHANGES_REQUIRED → /fix → /verify → /review
+  └─ READY_FOR_SENIOR_REVIEW
+                   ↓
+            Sonnet review
+  ├─ REQUEST CHANGES → /fix → /verify → /review
+  └─ APPROVE
+       ↓
+       CI
+       ↓
+   PR / merge
+       ↓
+human-approved production deployment
+
 ## Technology Ownership
 
 The technology stack is chosen during:
