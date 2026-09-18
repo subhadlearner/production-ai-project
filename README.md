@@ -75,7 +75,7 @@ human-approved production deployment
 
 Blocked workflow stages must report the blocker, its owner, the minimum required action, and the exact next command.
 
-For the complete command, agent, model-routing, TDD, diagnosis, adversarial-escalation, skill, and blocked-state reference, see:
+For the complete command, agent, model-routing, TDD, diagnosis, adversarial-escalation, skill, blocked-state, and **sample invocation prompt** reference, see:
 
 `docs/workflow/AI-ENGINEERING-WORKFLOW.md`
 
