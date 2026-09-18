@@ -167,7 +167,7 @@ If the requested model is unavailable from the connected provider, the workflow 
 
 ## 5. Stage-by-Stage Workflow
 
-## 4.1 `/grill` — Optional Discovery
+## 5.1 `/grill` — Optional Discovery
 
 ### When to use
 
@@ -246,7 +246,7 @@ DISCOVERY_READY
 
 ---
 
-## 4.2 `/prd` — Product Requirements
+## 5.2 `/prd` — Product Requirements
 
 ### Model
 
@@ -303,7 +303,7 @@ For large coupled product ambiguities, route back to `/grill`.
 
 ---
 
-## 4.3 `/architect` — Production Architecture
+## 5.3 `/architect` — Production Architecture
 
 ### Model
 
@@ -403,7 +403,7 @@ It does not receive the author's preferred conclusion or reasoning narrative.
 
 ## 6. Model Strategy and Adversarial Escalation
 
-## 5.1 Why the workflow changed
+## 6.1 Why the workflow changed
 
 The workflow uses the user's connected ChatGPT Pro subscription for OpenAI models inside Kilo, while Anthropic models use a separate metered API budget.
 
@@ -413,7 +413,7 @@ The goal is:
 
 > Use subscription-covered frontier reasoning for normal high-value work, cheap execution models for high-volume work, and paid Claude calls where independent model diversity or premium scrutiny genuinely adds value.
 
-## 5.2 Default model roles
+## 6.2 Default model roles
 
 ### GPT-5.6 Sol — primary frontier reasoner
 
@@ -493,7 +493,7 @@ Reserve Opus for:
 
 Agent-proposed Opus always requires explicit user approval.
 
-## 5.3 Adversarial routing
+## 6.3 Adversarial routing
 
 ### Default route
 
@@ -569,7 +569,7 @@ Claude findings are evidence, not authority.
 
 The owning workflow stage retains decision authority.
 
-## 5.4 Context-quality policy
+## 6.4 Context-quality policy
 
 Do **not** shrink materially relevant context merely to save money or subscription usage.
 
