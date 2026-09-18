@@ -288,9 +288,10 @@ Adversarial findings are evidence to reconcile, not authority. The owning lifecy
 Adversarial model routing is cost-controlled:
 
 - default adversary: DeepSeek Flash
-- escalation adversary: Claude Opus
-- Opus is only for rare critical decisions after the default DeepSeek adversarial pass
-- every Opus adversarial invocation requires explicit user approval
+- agent-proposed escalation adversary: Claude Opus, only for rare critical decisions after the default DeepSeek pass
+- user-directed override: the user may explicitly choose Claude Opus for an architecture, specification, or other adversarial review
+- a user-directed Opus request authorizes that specific invocation directly; it does not require a prior DeepSeek pass or Sonnet justification
+- when Opus is agent-proposed, explicit user approval is still required
 - Opus output remains evidence; it does not replace the authority of the owning workflow stage
 
 ## Specification Discipline
