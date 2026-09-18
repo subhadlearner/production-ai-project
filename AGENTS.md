@@ -324,6 +324,15 @@ Recognized aliases:
 
 The explicit model choice applies to that workflow invocation/session and does not alter the command's role, authority, permissions, acceptance criteria, or safety rules.
 
+For `/architect` and `/spec`, keep **workflow model** and **adversary model** separate:
+
+- plain phrases such as `use Claude`, `use Terra`, or `use GPT` select the workflow model that authors and owns the artifact
+- the adversary remains DeepSeek by default
+- to override the adversary, use explicit wording such as `for adversarial review use Opus`, `use Sonnet as adversary`, or `adversary: GPT`
+- the selected workflow model remains responsible for reconciling adversarial findings
+
+For the dedicated `/adversarial-check` command, a model phrase selects the adversary model because adversarial review is the command's sole purpose.
+
 If the requested connected-provider model is unavailable, the workflow must fail clearly and ask the user to select an available model. Never silently substitute.
 
 The default routing below applies only when the user does not specify a model.
