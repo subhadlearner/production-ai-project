@@ -169,7 +169,7 @@ Specifications define stable observable test seams and whether TDD is applicable
 
 Use `/diagnose` when a defect is difficult to reproduce or localize. It creates a red-capable feedback loop before root-cause claims and may persist a concise report under `docs/diagnostics/`.
 
-Use `/adversarial-check` for high-risk architecture/specification/migration/security decisions. It sends only the artifact plus its contract to a fresh-context adversary and then reconciles findings. It is not a substitute for `/verify`, `/review`, CI, or human approval.
+Use `/adversarial-check` for high-risk architecture/specification/migration/security decisions. It sends only the artifact plus its contract to a fresh-context adversary and then reconciles findings. DeepSeek Flash is the default adversary. You may explicitly request Claude Opus directly for a specific adversarial review; that user request authorizes the premium invocation without a prior DeepSeek pass or Sonnet justification. It is not a substitute for `/verify`, `/review`, CI, or human approval.
 
 ## Project Skills
 
