@@ -75,7 +75,76 @@ review failure        → /fix → /verify → /review
 
 ---
 
-## 3. Agent and Model Map
+## 3. User-Controlled Model Selection
+
+For product-design workflows, the user may choose the model directly in natural language.
+
+Examples:
+
+```text
+/grill I want to build a finance platform for Indian retail investors. Grill me. Use GPT.
+
+/grill I want to build a finance platform for Indian retail investors. Grill me. Use Claude.
+
+/architect Design the approved system. Use Terra.
+
+/spec Create the next implementation specifications. Use Haiku.
+
+/adversarial-check Use Opus directly for this review.
+```
+
+Recognized aliases:
+
+| User phrase | Resolved model |
+| --- | --- |
+| `use GPT`, `use OpenAI`, `use Sol` | GPT-5.6 Sol |
+| `use Terra` | GPT-5.6 Terra |
+| `use Luna` | GPT-5.6 Luna |
+| `use Claude`, `use Sonnet` | Claude Sonnet 5 |
+| `use Haiku` | Claude Haiku 4.5 |
+| `use Opus` | Claude Opus 5 |
+| `use DeepSeek` | DeepSeek V4.1 Flash |
+
+### How this works
+
+The normal top-level planning command still starts under the configured default planner.
+
+If the user explicitly selects another model, the planner becomes a thin router and delegates the substantive workflow to a model-selectable planning subagent using Kilo's **Task Subagent Model Selection** feature.
+
+The selected model then performs the actual discovery, PRD, architecture, or specification work.
+
+If the workflow needs another round of user input, the child returns the questions to the parent, which relays them to the user and continues the same workflow with the same selected model.
+
+The selected model remains in effect for that workflow session unless the user changes it explicitly.
+
+### Important behavior
+
+The model choice changes the intelligence provider only.
+
+It does **not** change:
+
+- stage authority
+- permissions
+- architecture constraints
+- testing rules
+- acceptance criteria
+- security requirements
+- branch/worktree rules
+- deterministic verification
+- review/merge/deployment gates
+
+If the requested model is unavailable from the connected provider, the workflow must stop clearly. It must not silently fall back to another model.
+
+### Defaults when no model is specified
+
+- GPT-5.6 Sol: `/grill`, `/prd`, `/architect`, `/spec`
+- GPT-5.6 Luna: `/project-init`
+- DeepSeek Flash: `/implement`, `/verify`, `/fix`, `/diagnose`, default adversary, pre-review
+- GPT-5.6 Sol: senior review
+
+---
+
+## 4. Agent and Model Map
 
 | Stage / Capability | Command | Primary Model / Agent | Supporting Agent / Skill | Purpose |
 | --- | --- | --- | --- | --- |
@@ -96,7 +165,7 @@ review failure        → /fix → /verify → /review
 
 ---
 
-## 4. Stage-by-Stage Workflow
+## 5. Stage-by-Stage Workflow
 
 ## 4.1 `/grill` — Optional Discovery
 
@@ -332,7 +401,7 @@ It does not receive the author's preferred conclusion or reasoning narrative.
 
 ---
 
-## 5. Model Strategy and Adversarial Escalation
+## 6. Model Strategy and Adversarial Escalation
 
 ## 5.1 Why the workflow changed
 
@@ -359,6 +428,14 @@ Use by default for:
 
 Sol is the normal model for decisions where reasoning quality matters most.
 
+### GPT-5.6 Terra — balanced optional OpenAI choice
+
+Terra is available in Kilo as `openai/gpt-5.6-terra`.
+
+Use it when the user explicitly wants an OpenAI model between Sol and Luna in capability/latency/compute.
+
+Availability under the user's ChatGPT OAuth connection depends on whether Terra is present in the connected Codex model catalog. If it is absent from the model picker, do not attempt silent fallback.
+
 ### GPT-5.6 Luna — lightweight operationalizer
 
 Use by default for:
@@ -380,6 +457,14 @@ Use by default for:
 - pre-review
 
 DeepSeek handles high-volume engineering work economically.
+
+### Claude Haiku 4.5 — lower-cost Claude-family option
+
+Haiku is available in Kilo as `anthropic/claude-haiku-4.5`.
+
+Use it for bounded planning/review work when the user wants Claude-family behavior at lower cost and the task fits its smaller context window.
+
+Do not use Haiku for a task whose required context exceeds its supported window.
 
 ### Claude Sonnet — optional paid independent second opinion
 
@@ -504,7 +589,7 @@ The optimization target is **relevant context density**, not minimum tokens.
 
 ---
 
-## 6. `/project-init` — Operationalize the Architecture
+## 7. `/project-init` — Operationalize the Architecture
 
 ### Purpose
 
@@ -543,7 +628,7 @@ Reusable global skills should generally remain global instead of being copied in
 
 ---
 
-## 7. `/spec` — Implementation Specifications
+## 8. `/spec` — Implementation Specifications
 
 ### Model
 
@@ -635,7 +720,7 @@ When Claude is agent-proposed rather than user-selected, explicit approval is re
 
 ---
 
-## 8. `/implement` — Build One Specification
+## 9. `/implement` — Build One Specification
 
 ### Model
 
@@ -691,7 +776,7 @@ RUN_VERIFY
 
 ---
 
-## 9. `/verify` — Deterministic Completion Gate
+## 10. `/verify` — Deterministic Completion Gate
 
 ### Model
 
@@ -747,7 +832,7 @@ NOT_DONE
 
 ---
 
-## 10. `/fix` — Normal Repair
+## 11. `/fix` — Normal Repair
 
 ### Model
 
@@ -790,7 +875,7 @@ RUN_VERIFY
 
 ---
 
-## 11. `/diagnose` — Hard Bug Diagnosis
+## 12. `/diagnose` — Hard Bug Diagnosis
 
 ### Model
 
@@ -868,7 +953,7 @@ DIAGNOSIS_READY
 
 ---
 
-## 12. `/review` — AI Review Pipeline
+## 13. `/review` — AI Review Pipeline
 
 Users normally run only:
 
@@ -946,7 +1031,7 @@ REQUEST CHANGES
 
 ---
 
-## 13. CI, PR, Merge, and Deployment
+## 14. CI, PR, Merge, and Deployment
 
 AI approval is not the final deterministic gate.
 
@@ -970,7 +1055,7 @@ Production deployment must never be implied by AI approval.
 
 ---
 
-## 14. Branch and Worktree Rules
+## 15. Branch and Worktree Rules
 
 Each specification should use a dedicated branch:
 
@@ -1003,7 +1088,7 @@ For parallel mutating specifications:
 
 ---
 
-## 15. Skill Behavior
+## 16. Skill Behavior
 
 Skills are expected to be selected automatically by the configured agents.
 
@@ -1043,7 +1128,7 @@ can supplement or override generic guidance for repository/domain-specific behav
 
 ---
 
-## 16. Current Global Skill Foundation
+## 17. Current Global Skill Foundation
 
 Typical reusable global skills include:
 
@@ -1068,7 +1153,7 @@ The Skill Coverage Matrix in `/project-init` decides whether additional project-
 
 ---
 
-## 17. Blocked-State Routing
+## 18. Blocked-State Routing
 
 When a stage cannot safely continue, it must identify:
 
@@ -1107,7 +1192,7 @@ Do not silently solve an upstream authority problem in a downstream stage.
 
 ---
 
-## 18. How to Invoke Commands — Prompt Templates
+## 19. How to Invoke Commands — Prompt Templates
 
 You normally invoke a workflow command and then describe the specific job in plain language.
 
@@ -1133,7 +1218,7 @@ You do **not** need to paste PRDs, architecture documents, specs, ADRs, or sourc
 
 You also do not need to guess the root cause of a bug or construct the adversarial contract yourself. Give the agent the observable problem or the decision you want challenged.
 
-### 18.1 `/grill`
+### 19.1 `/grill`
 
 Use when the product idea is still broad, coupled, or ambiguous.
 
@@ -1162,7 +1247,19 @@ I want to add cross-account AWS event ingestion.
 Grill me until the product behavior, scope, security boundaries, failure expectations, and non-goals are clear enough for /prd.
 ```
 
-### 18.2 `/prd`
+Model-selected examples:
+
+```text
+/grill I want to build a finance platform for Indian retail investors. Grill me. Use GPT.
+
+/grill I want to build a finance platform for Indian retail investors. Grill me. Use Claude.
+
+/grill I want to build a finance platform for Indian retail investors. Grill me. Use Terra.
+
+/grill I want to build a finance platform for Indian retail investors. Grill me. Use Haiku.
+```
+
+### 19.2 `/prd`
 
 Use when product intent is sufficiently clear.
 
@@ -1193,7 +1290,7 @@ Requirements:
 Capture edge cases, security/privacy concerns, measurable acceptance criteria, and explicit non-goals.
 ```
 
-### 18.3 `/architect`
+### 19.3 `/architect`
 
 Use after the PRD is ready.
 
@@ -1223,7 +1320,7 @@ For the final adversarial review of the authentication, data-integrity, and cros
 My request authorizes those specific Opus adversarial checks.
 ```
 
-### 18.4 `/project-init`
+### 19.4 `/project-init`
 
 Use after `ARCHITECTURE_READY`.
 
@@ -1238,7 +1335,7 @@ Do not invent or replace architecture decisions.
 Do not implement product functionality.
 ```
 
-### 18.5 `/spec`
+### 19.5 `/spec`
 
 Use to turn approved architecture into implementable work.
 
@@ -1275,7 +1372,7 @@ Use Opus directly for the adversarial review of this specification because rollb
 My request authorizes this specific Opus review.
 ```
 
-### 18.6 `/implement`
+### 19.6 `/implement`
 
 Reference the exact specification.
 
@@ -1300,7 +1397,7 @@ Do not modify files owned by concurrently running SPEC-022.
 Follow the dependencies and file-ownership guidance in the spec.
 ```
 
-### 18.7 `/verify`
+### 19.7 `/verify`
 
 Usually only the spec reference is needed because verification reads the project-defined commands and acceptance criteria.
 
@@ -1323,7 +1420,7 @@ The reported failure occurs only with the local integration-test profile.
 Include that profile in the required deterministic checks.
 ```
 
-### 18.8 `/fix`
+### 19.8 `/fix`
 
 Use when the blocker is already known from verification or review.
 
@@ -1348,7 +1445,7 @@ Preserve the approved architecture and public contracts.
 Do not implement the non-blocking suggestions unless they are required by the fix.
 ```
 
-### 18.9 `/diagnose`
+### 19.9 `/diagnose`
 
 Use when you know the symptom but **do not know the root cause**.
 
@@ -1416,7 +1513,7 @@ Expected behavior is defined in SPEC-014.
 Please reproduce and establish the root cause before /fix.
 ```
 
-### 18.10 `/adversarial-check`
+### 19.10 `/adversarial-check`
 
 Use when you want a fresh second opinion on a high-risk decision.
 
@@ -1471,7 +1568,7 @@ I want a premium fresh-context challenge focused on trust boundaries, confused-d
 
 The phrase `Use Opus directly for this review` is sufficient authorization for that specific premium adversarial invocation.
 
-### 18.11 `/review`
+### 19.11 `/review`
 
 Run only after `/verify` returns `DONE`.
 
@@ -1486,7 +1583,7 @@ DeepSeek pre-review first, then GPT-5.6 Sol senior review only if the pre-review
 
 You normally do not invoke the internal `pre-reviewer` or `code-reviewer` directly.
 
-### 18.12 Choosing Between `/fix` and `/diagnose`
+### 19.12 Choosing Between `/fix` and `/diagnose`
 
 Use:
 
@@ -1532,7 +1629,7 @@ I know what is wrong but not why → /diagnose
 
 ---
 
-## 19. Decision Guide — Which Command Should I Run?
+## 20. Decision Guide — Which Command Should I Run?
 
 | Situation | Command |
 | --- | --- |
@@ -1550,7 +1647,7 @@ I know what is wrong but not why → /diagnose
 
 ---
 
-## 20. Full Workflow Diagram
+## 21. Full Workflow Diagram
 
 ```text
                            ┌────────────────────────────┐
@@ -1701,7 +1798,7 @@ I know what is wrong but not why → /diagnose
 
 ---
 
-## 21. Hard-Bug Diagram
+## 22. Hard-Bug Diagram
 
 ```text
 Observed defect
@@ -1742,7 +1839,7 @@ Root cause obvious?
 
 ---
 
-## 22. Production Safety Summary
+## 23. Production Safety Summary
 
 Before calling work complete:
 
