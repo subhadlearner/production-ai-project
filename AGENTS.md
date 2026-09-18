@@ -331,62 +331,54 @@ or
 
 `NOT_DONE`
 
-`DONE` means all required applicable verification checks passed and no verification blocker remains.
+`DONE` means:
+
+- all required applicable verification checks passed
+- every required acceptance criterion has deterministic passing evidence
+- no verification blocker remains
 
 `NOT_DONE` means one or more required conditions are not satisfied.
 
-If `/verify` returns:
+If `/verify` returns `NOT_DONE`, do not proceed to `/review`.
 
-`NOT_DONE`
-
-do not proceed to `/review`.
-
-Use:
-
-`/fix`
+Use `/fix`.
 
 ## Repair Workflow
 
-Use `/fix` only after `/verify` returns:
+Use `/fix` after any of the following:
 
-`NOT_DONE`
+- `/verify` returns `NOT_DONE`
+- pre-review returns `CHANGES_REQUIRED`
+- senior review returns `REQUEST CHANGES`
 
 The repair flow is:
 
-1. inspect the latest verification blockers
+1. inspect the latest verification or review blockers
 2. determine the smallest correct repair
-3. use the builder for straightforward localized fixes
-4. use the debugger when root cause is unclear or previous repair attempts failed
+3. repair locally when consistent with the approved specification and architecture
+4. use root-cause debugging when the cause is unclear or repeated attempts fail
 5. run focused validation
 6. return control to `/verify`
 
 `/fix` must not decide completion.
 
-Only `/verify` may return:
-
-`DONE`
+Only `/verify` may return `DONE`.
 
 The successful repair handoff is:
 
 `RUN_VERIFY`
 
-If repair requires:
+If repair requires an upstream product, architecture, project-init, or specification change, `/fix` must return `FIX_BLOCKED` and identify:
 
-- an architecture change
-- a specification change
-- an unapproved major dependency
-- weakening an approved requirement
-- changing an approved public contract
-
-return:
-
-`FIX_BLOCKED`
+- blocking issue
+- owner
+- why it blocks
+- required action
+- exact next command
 
 Do not silently redesign the system.
 
 Avoid repeated speculative repair attempts.
-
-After two meaningful unsuccessful repair attempts for the same blocker, switch to root-cause debugging.
 
 ## Verification and Repair Loop
 
@@ -408,3 +400,167 @@ RUN_VERIFY
        RUN_VERIFY
           ↓
         /verify
+```
+
+## Review Workflow
+
+Review occurs only after `/verify` returns `DONE`.
+
+The review pipeline is:
+
+1. DeepSeek pre-review
+2. Claude Sonnet senior review only if pre-review returns `READY_FOR_SENIOR_REVIEW`
+
+Possible pre-review outcomes:
+
+- `READY_FOR_SENIOR_REVIEW`
+- `CHANGES_REQUIRED`
+
+Possible senior-review outcomes:
+
+- `APPROVE`
+- `REQUEST CHANGES`
+
+If pre-review returns `CHANGES_REQUIRED`:
+
+```text
+/review
+   ↓
+CHANGES_REQUIRED
+   ↓
+/fix
+   ↓
+/verify
+   ↓
+/review
+```
+
+If senior review returns `REQUEST CHANGES`:
+
+```text
+/review
+   ↓
+REQUEST CHANGES
+   ↓
+/fix
+   ↓
+/verify
+   ↓
+/review
+```
+
+The senior reviewer must not be invoked when the pre-review has blocking findings.
+
+AI review does not replace deterministic CI.
+
+## Definition of Done
+
+A specification is complete only when:
+
+- implementation is complete
+- required applicable tests exist
+- `/verify` returns `DONE`
+- `/review` reaches `APPROVE`
+- CI passes
+- merge occurs through the normal PR process
+
+Production deployment remains a separate human-approved action.
+
+## Security
+
+Never:
+
+- hard-code credentials or secrets
+- print secrets in logs or command output
+- weaken authentication or authorization to obtain a pass
+- disable required security checks
+- commit local credential material
+
+Treat these as sensitive by default:
+
+- `.env`
+- `.env.*`
+- `*.pem`
+- `*.key`
+- cloud credentials
+- API tokens
+- private certificates
+
+## Cloud and Cost
+
+Cloud cost is a first-class implementation concern.
+
+Where applicable, consider:
+
+- fixed monthly cost
+- variable usage cost
+- storage cost
+- data-transfer cost
+- observability cost
+- scaling behavior
+- operational burden
+- failure and recovery cost
+
+Prefer managed or serverless services when they provide the best balance of reliability, simplicity, and cost.
+
+Do not introduce always-on or premium infrastructure unless justified by approved requirements.
+
+## Deployment
+
+Infrastructure and deployment must follow approved architecture and IaC decisions.
+
+Do not manually create production cloud resources when IaC is required.
+
+CI/CD must enforce applicable build, test, quality, security, and IaC gates.
+
+Do not auto-deploy to production.
+
+Production deployment requires explicit human approval.
+
+## Workflow Ownership
+
+The normal lifecycle is:
+
+```text
+/prd
+  ↓
+PRD_READY
+  ↓
+/architect
+  ├─ ARCHITECTURE_BLOCKED → resolve → /architect
+  └─ ARCHITECTURE_READY
+            ↓
+      /project-init
+  ├─ PROJECT_INIT_BLOCKED → resolve as directed
+  └─ PROJECT_INIT_READY
+            ↓
+          /spec
+  ├─ SPEC_BLOCKED → resolve as directed
+  └─ SPEC_READY
+            ↓
+       /implement
+  ├─ IMPLEMENTATION_BLOCKED → resolve as directed
+  └─ RUN_VERIFY
+            ↓
+         /verify
+  ├─ NOT_DONE → /fix → /verify
+  └─ DONE
+       ↓
+     /review
+       ↓
+DeepSeek pre-review
+  ├─ CHANGES_REQUIRED → /fix → /verify → /review
+  └─ READY_FOR_SENIOR_REVIEW
+                   ↓
+            Sonnet senior review
+  ├─ REQUEST CHANGES → /fix → /verify → /review
+  └─ APPROVE
+       ↓
+       CI
+       ↓
+   PR / merge
+       ↓
+human-approved production deployment
+```
+
+Blocked stages must state the owner, required action, and exact next command rather than leaving the operator to infer the recovery path.
