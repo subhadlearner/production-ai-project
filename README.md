@@ -266,6 +266,10 @@ Examples:
 
 Supported aliases include GPT/Sol, Terra, Luna, Claude/Sonnet, Haiku, Opus, and DeepSeek.
 
+For `/architect` and `/spec`, a plain model choice selects the workflow authoring model only. The adversary stays DeepSeek unless you separately say something like `for adversarial review use Opus` or `adversary: Sonnet`.
+
+For `/adversarial-check`, the model phrase selects the adversary directly.
+
 If no model is named, the default routing below applies.
 
 The model choice changes the intelligence provider, not the workflow's permissions or authority.
