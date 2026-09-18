@@ -285,6 +285,14 @@ High-risk design/specification decisions should receive fresh-context adversaria
 
 Adversarial findings are evidence to reconcile, not authority. The owning lifecycle stage remains responsible for the decision.
 
+Adversarial model routing is cost-controlled:
+
+- default adversary: DeepSeek Flash
+- escalation adversary: Claude Opus
+- Opus is only for rare critical decisions after the default DeepSeek adversarial pass
+- every Opus adversarial invocation requires explicit user approval
+- Opus output remains evidence; it does not replace the authority of the owning workflow stage
+
 ## Specification Discipline
 
 Implementation must be based on a specification under:
