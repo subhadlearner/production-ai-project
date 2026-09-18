@@ -294,6 +294,40 @@ Adversarial model routing is cost-controlled:
 - agent-proposed Sonnet or Opus invocations always require explicit user approval
 - Claude output remains evidence; it does not replace the authority of the owning workflow stage
 
+## User-Controlled Model Selection
+
+For product-design workflows, the user may choose the model directly in the command prompt.
+
+Examples:
+
+```text
+/grill I want to build a finance platform for Indian retail investors. Grill me. Use GPT.
+
+/grill I want to build a finance platform for Indian retail investors. Grill me. Use Claude.
+
+/architect Design the approved platform. Use Terra.
+
+/spec Create the next implementation specifications. Use Haiku.
+```
+
+Recognized aliases:
+
+| User phrase | Model |
+| --- | --- |
+| `use GPT`, `use OpenAI`, `use Sol` | GPT-5.6 Sol |
+| `use Terra` | GPT-5.6 Terra |
+| `use Luna` | GPT-5.6 Luna |
+| `use Claude`, `use Sonnet` | Claude Sonnet 5 |
+| `use Haiku` | Claude Haiku 4.5 |
+| `use Opus` | Claude Opus 5 |
+| `use DeepSeek` | DeepSeek V4.1 Flash |
+
+The explicit model choice applies to that workflow invocation/session and does not alter the command's role, authority, permissions, acceptance criteria, or safety rules.
+
+If the requested connected-provider model is unavailable, the workflow must fail clearly and ask the user to select an available model. Never silently substitute.
+
+The default routing below applies only when the user does not specify a model.
+
 ## Model Routing
 
 The default model strategy is:
@@ -301,8 +335,10 @@ The default model strategy is:
 - GPT-5.6 Sol: `/grill`, `/prd`, `/architect`, `/spec`, adversarial reconciliation, and senior code review
 - GPT-5.6 Luna: `/project-init` and lightweight Ask/documentation work
 - DeepSeek Flash: `/implement`, `/verify`, `/fix`, `/diagnose`, default adversarial review, and pre-review
+- Claude Haiku 4.5: optional lower-cost Claude-family choice for bounded work that fits its context window
 - Claude Sonnet: optional paid independent model-family second opinion
 - Claude Opus: optional premium rare-critical adversarial or architecture escalation
+- GPT-5.6 Terra: optional balanced OpenAI choice between Sol and Luna when available in the connected OpenAI catalog
 
 Claude is no longer a mandatory lifecycle dependency.
 
