@@ -246,6 +246,32 @@ CHANGES_REQUIRED or REQUEST CHANGES
 
 It must validate all required applicable checks and provide deterministic evidence for the specification's acceptance criteria.
 
+## Choosing the Model Per Workflow
+
+For product-design commands, you can choose the model directly in the prompt.
+
+Examples:
+
+```text
+/grill I want to build a finance platform for Indian retail investors. Grill me. Use GPT.
+
+/grill I want to build a finance platform for Indian retail investors. Grill me. Use Claude.
+
+/architect Use Terra.
+
+/spec Use Haiku.
+
+/adversarial-check Use Opus directly for this review.
+```
+
+Supported aliases include GPT/Sol, Terra, Luna, Claude/Sonnet, Haiku, Opus, and DeepSeek.
+
+If no model is named, the default routing below applies.
+
+The model choice changes the intelligence provider, not the workflow's permissions or authority.
+
+Kilo's Task Subagent Model Selection feature must remain enabled for natural-language routing to a different subagent model.
+
 ## Model Routing
 
 The default workflow uses:
