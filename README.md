@@ -1,36 +1,105 @@
-\# Project Name
-
-
+# Project Name
 
 Briefly describe the project.
 
-
-
-\## Development Workflow
-
-
+## Development Workflow
 
 This repository follows the AI-assisted engineering workflow defined in `AGENTS.md`.
 
+The standard lifecycle is:
 
+1. `/prd`
+2. `/architect`
+3. `/project-init`
+4. `/spec`
+5. `/implement`
+6. `/verify`
+7. `/review`
 
-Typical lifecycle:
+## Technology Ownership
 
+The technology stack is chosen during:
 
+`/architect`
 
-1\. `/prd`
+`/project-init` does not choose the stack.
 
-2\. `/architect`
+It synchronizes the approved architecture into:
 
-3\. `/spec`
+- `AGENTS.md`
+- `README.md`
+- `.kilo/rules/`
+- `.kilo/skills/`
 
-4\. `/implement`
+If required technology decisions are missing, `/project-init` must stop instead of guessing.
 
-5\. `/verify`
+## Branch and Worktree Workflow
 
-6\. `/review`
+Each specification should be implemented on its own branch.
 
+Preferred naming:
 
+`spec/<spec-id>-<short-description>`
 
-Production deployment requires human approval.
+Example:
 
+`spec/SPEC-001-create-short-url`
+
+Do not implement directly on protected branches such as:
+
+- `main`
+- `master`
+- `develop`
+- `release`
+
+For parallel implementation, use separate Git branches and separate worktrees.
+
+`/fix`, `/verify`, and `/review` continue on the existing implementation branch.
+
+They must not create another branch for the same specification.
+
+Merge should happen through the normal PR/CI process.
+
+## Project Skills
+
+Project-scoped skills are stored under:
+
+`.kilo/skills/`
+
+Skills should only be added when they materially improve implementation quality.
+
+Prefer:
+
+1. official/vendor-maintained skills
+2. reputable community skills
+3. adapted project-specific skills
+4. custom skills only when necessary
+
+Third-party skills must be reviewed and explicitly approved before installation.
+
+Do not install large or unrelated skill collections.
+
+## Verification and Repair Loop
+
+Implementation is not ready for review until `/verify` returns:
+
+`DONE`
+
+The implementation flow is:
+
+```text
+/implement
+   ↓
+RUN_VERIFY
+   ↓
+/verify
+   │
+   ├── DONE ─────────────→ /review
+   │
+   └── NOT_DONE
+          ↓
+        /fix
+          ↓
+       RUN_VERIFY
+          ↓
+        /verify
