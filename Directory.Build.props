@@ -1,0 +1,28 @@
+<Project>
+
+  <!--
+    Shared build settings for every project in this repository.
+    Technology baseline: docs/architecture/ARCH-001-health-api.md
+  -->
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+
+    <!--
+      Code quality is enforced by the standard build itself: built-in Roslyn
+      analyzers at the recommended rule set, with every warning treated as an
+      error. There is no separate lint step (see AGENTS.md).
+    -->
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+
+    <!--
+      Keep the informational version deterministic (no source-revision suffix)
+      so the /health version field is a stable, testable value.
+    -->
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+  </PropertyGroup>
+
+</Project>

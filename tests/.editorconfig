@@ -1,0 +1,6 @@
+# Test code uses the standard xUnit naming convention
+# (Method_Scenario_Expectation), which CA1707 ("identifiers should not
+# contain underscores") is not intended to cover. The rule stays enabled
+# for production code under src/.
+[*.cs]
+dotnet_diagnostic.CA1707.severity = none

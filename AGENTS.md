@@ -2,31 +2,51 @@
 
 ## Project Overview
 
-Describe the purpose of this project here.
+This repository implements **PRD-001: Tiny Production-Grade HTTP Health
+API**, a minimal engineering-workflow smoke test service. It exposes a
+single `GET /health` endpoint returning HTTP 200 with a JSON body
+containing a `status` indicator and the application's version, sourced
+from build/assembly metadata rather than a hand-maintained literal.
+
+The project has no business domain beyond validating the health-check
+contract itself. It intentionally has no persistence, authentication,
+messaging, external integrations, or UI (see
+`docs/prd/PRD-001-health-api.md`, non-goals NG1–NG8). Its purpose is to
+exercise the full `/prd → /architect → /project-init → /spec → /implement
+→ /verify → /review` workflow end-to-end with real code, real automated
+tests, and a real CI pipeline, at zero/near-zero infrastructure cost.
+
+Approved project documents:
+
+- PRD: `docs/prd/PRD-001-health-api.md`
+- Architecture: `docs/architecture/ARCH-001-health-api.md`
+- ADRs: `docs/adr/ADR-001-language-runtime-framework.md`,
+  `docs/adr/ADR-002-zero-infrastructure-boundary.md`,
+  `docs/adr/ADR-003-ci-provider.md`, `docs/adr/ADR-004-testing-stack.md`
 
 ## Technology
 
-The approved technology stack is determined during `/architect`.
+The approved technology stack was determined during `/architect` (see
+`docs/architecture/ARCH-001-health-api.md`, Stage 10 handoff).
 
-`/project-init` records the approved stack here.
+Implementation agents must not invent or silently replace the technology
+stack.
 
-Implementation agents must not invent or silently replace the technology stack.
-
-- Runtime:
-- Language:
-- Framework:
-- Database:
-- Cloud:
-- Region:
-- Infrastructure as Code:
-- Package Manager:
-- Unit Test Framework:
-- Integration Test Framework:
-- E2E Test Framework:
-- Linting:
-- Formatting:
-- Type Checking / Static Analysis:
-- Security / Dependency Scanning:
+- Runtime: .NET 10 (LTS)
+- Language: C# (latest supported by the .NET 10 SDK)
+- Framework: ASP.NET Core, Minimal API hosting model
+- Database: Not Applicable — no persistence (PRD non-goal NG1; ADR-002)
+- Cloud: Not Applicable — local + CI execution only, no cloud deployment (PRD non-goal NG6; ADR-002)
+- Region: Not Applicable
+- Infrastructure as Code: Not Applicable — no infrastructure is provisioned (ADR-002)
+- Package Manager: NuGet via the `dotnet` CLI
+- Unit Test Framework: xUnit
+- Integration Test Framework: `Microsoft.AspNetCore.Mvc.Testing` (`WebApplicationFactory<Program>`) + xUnit
+- E2E Test Framework: Not Applicable — no UI or multi-service flow (ADR-004)
+- Linting: Built-in Roslyn analyzers (`EnableNETAnalyzers`, `AnalysisLevel=latest-recommended`), enforced via `TreatWarningsAsErrors`
+- Formatting: `dotnet format`
+- Type Checking / Static Analysis: C# compiler with `<Nullable>enable</Nullable>`, warnings treated as errors
+- Security / Dependency Scanning: NuGet Audit (built-in .NET 10 SDK) + GitHub Dependabot alerts + `gitleaks` secret scanning in CI
 
 If a technology decision required for implementation is missing or materially ambiguous, implementation must stop rather than guess.
 
@@ -81,51 +101,85 @@ Merge should happen through the normal PR/CI process.
 
 ## Build and Verification Commands
 
-The commands below must reflect the actual project configuration.
-
-`/project-init` is responsible for populating these when the technology stack is initialized.
+The commands below reflect the actual project configuration, per
+`docs/architecture/ARCH-001-health-api.md` (Stage 10 handoff).
 
 Do not invent tools or commands simply because they are common for the language or framework.
 
+Repository layout these commands assume:
+
+- Solution: `HealthApi.sln`
+- Application project: `src/HealthApi/HealthApi.csproj`
+- Unit test project: `tests/HealthApi.UnitTests/HealthApi.UnitTests.csproj`
+- Integration test project: `tests/HealthApi.IntegrationTests/HealthApi.IntegrationTests.csproj`
+- SDK pin: `global.json` targeting the .NET 10 SDK
+
 ### Dependency Restore / Install
 
-Define the dependency restore/install command here.
+```
+dotnet restore
+```
+
+(Also triggers the built-in NuGet Audit vulnerability check — see Security / Dependency Checks.)
 
 ### Build
 
-Define the project build command here.
+```
+dotnet build --configuration Release --no-restore
+```
+
+Analyzers (`EnableNETAnalyzers`, `AnalysisLevel=latest-recommended`) and
+`TreatWarningsAsErrors=true` run as part of this command — there is no
+separate lint step (see Lint below).
 
 ### Unit Tests
 
-Define the unit-test command here.
+```
+dotnet test tests/HealthApi.UnitTests --configuration Release --no-build
+```
 
 ### Integration Tests
 
-Define the integration-test command here.
+```
+dotnet test tests/HealthApi.IntegrationTests --configuration Release --no-build
+```
 
 ### E2E Tests
 
-Define the E2E command here when applicable.
+Not Applicable — no UI or multi-service flow (PRD non-goals NG5; ADR-004).
 
 ### Lint
 
-Define the lint command here.
+Included in the Build command above. Static analysis runs in-line via
+built-in Roslyn analyzers with warnings treated as errors; there is no
+separate lint invocation.
 
 ### Formatting Verification
 
-Define the formatting verification command here when configured.
+```
+dotnet format --verify-no-changes
+```
 
 ### Type Checking / Static Analysis
 
-Define the applicable command here.
+Included in the Build command above (Roslyn compiler with
+`<Nullable>enable</Nullable>`, warnings treated as errors).
 
 ### Security / Dependency Checks
 
-Define configured security, dependency, or vulnerability checks here.
+```
+dotnet restore
+gitleaks detect --no-banner --exit-code 1
+```
+
+`dotnet restore` triggers the .NET 10 SDK's built-in NuGet Audit for
+known-vulnerable packages. `gitleaks` performs secret scanning in CI.
+GitHub Dependabot alerts run natively on the hosted repository (no local
+command).
 
 ### Infrastructure Validation
 
-Define applicable IaC validation commands here.
+Not Applicable — no IaC exists (PRD non-goal NG6; ADR-002).
 
 ## Architecture Constraints
 
@@ -137,6 +191,41 @@ Define applicable IaC validation commands here.
 - Do not silently change public contracts.
 - Do not silently change consistency, reliability, security, or persistence guarantees.
 - Architecture decisions take precedence over implementation convenience.
+
+### Project-Specific Constraints (PRD-001 / ARCH-001)
+
+- Exactly one HTTP endpoint exists: `GET /health`. Do not add other
+  business endpoints (PRD non-goal NG8).
+- Use the ASP.NET Core **Minimal API** hosting model. Do not switch to MVC
+  controllers (ADR-001).
+- Do not introduce a database, ORM, message queue, external HTTP client
+  integration, or UI/frontend project (PRD non-goals NG1, NG3, NG4, NG5).
+- Do not add a Dockerfile, container publish step, IaC, or any cloud
+  deployment target (PRD non-goal NG6; ADR-002). This project runs only as
+  a local process and inside CI compute.
+- Do not add authentication/authorization middleware (PRD non-goal NG2).
+- Source the `version` field from build/assembly metadata (e.g., the
+  `.csproj` `Version`/`InformationalVersion` property via
+  `System.Reflection`) — never hard-code it as a literal separate from the
+  build (PRD FR-5).
+
+## Coding Conventions
+
+- Repository layout: `HealthApi.sln` at the repo root;
+  `src/HealthApi/HealthApi.csproj` for the application;
+  `tests/HealthApi.UnitTests/` and `tests/HealthApi.IntegrationTests/` for
+  tests; `global.json` pinning the .NET 10 SDK at the repo root.
+- Enable `<Nullable>enable</Nullable>` and
+  `<TreatWarningsAsErrors>true</TreatWarningsAsErrors>` for all projects
+  (e.g., via a root `Directory.Build.props`).
+- Use `System.Text.Json` for response serialization (ASP.NET Core
+  default) — do not add a third-party JSON library.
+- Isolate version lookup behind a small `IAppVersionProvider` abstraction
+  so unit tests can substitute a hand-written fake without a mocking
+  framework (ADR-004); do not add Moq/NSubstitute or similar for this.
+- Keep `Program.cs` a Minimal API composition root: route registration,
+  logging configuration, and host startup only — no business logic beyond
+  what the health handler needs.
 
 ## Technology Decision Authority
 
@@ -315,6 +404,23 @@ A specification is not complete until all required applicable tests pass.
 
 Do not classify a missing required test as `NOT_APPLICABLE` merely because it has not yet been implemented.
 
+### Project-Specific Testing Requirements
+
+- Unit tests (xUnit) must cover the `/health` handler's success response
+  shape and status code using a fake `IAppVersionProvider` (PRD AC-4).
+- Integration tests (xUnit + `WebApplicationFactory<Program>`) must cover:
+  successful `GET /health` returning 200 with valid JSON (AC-1, AC-2), the
+  `version` field matching the real assembly version (AC-3), a non-`GET`
+  method returning a non-200 status (AC-6), an undefined route returning
+  404 (AC-7), and an unauthenticated request succeeding (AC-11).
+- Contract tests, E2E tests, and security-specific test suites are Not
+  Applicable for this project (no external consumer contract, no UI, no
+  auth to security-test) — do not report them as missing; they are
+  correctly out of scope per ADR-004.
+- Manually starting the service (`dotnet run`) and verifying `GET /health`
+  via `curl` (AC-10) is a documented procedural check, not an automated
+  test.
+
 ## Verification Workflow
 
 `/verify` provides deterministic evidence about the implementation.
@@ -486,6 +592,18 @@ Treat these as sensitive by default:
 - API tokens
 - private certificates
 
+### Project-Specific Security Constraints
+
+- `/health` requires no authentication or authorization by design (PRD
+  non-goal NG2) — do not add any.
+- No secrets or credentials exist in this project; none should ever be
+  introduced.
+- Responses and logs must never include stack traces, file paths, or
+  environment variable values.
+- CI must run `gitleaks detect --no-banner --exit-code 1` on every
+  push/PR, and `dotnet restore` (built-in NuGet Audit) to catch
+  known-vulnerable packages.
+
 ## Cloud and Cost
 
 Cloud cost is a first-class implementation concern.
@@ -505,6 +623,16 @@ Prefer managed or serverless services when they provide the best balance of reli
 
 Do not introduce always-on or premium infrastructure unless justified by approved requirements.
 
+### Project-Specific Cloud and Cost Constraints
+
+- Target cost is $0 recurring (PRD Goal G3; ADR-002). No cloud compute,
+  storage, or networking resource may be provisioned.
+- The only compute used is the developer's local machine and GitHub
+  Actions `ubuntu-latest` CI runners (ADR-003).
+- Keep CI to a single job/single OS target with NuGet caching to minimize
+  CI-minute usage — do not add a build matrix without a new architecture
+  decision.
+
 ## Deployment
 
 Infrastructure and deployment must follow approved architecture and IaC decisions.
@@ -516,6 +644,17 @@ CI/CD must enforce applicable build, test, quality, security, and IaC gates.
 Do not auto-deploy to production.
 
 Production deployment requires explicit human approval.
+
+### Project-Specific Deployment Constraints
+
+- There is no production deployment target for this project (PRD
+  non-goal NG6; ADR-002). Do not add deployment workflows, cloud
+  provisioning, or IaC.
+- The only environment is local/CI (PRD assumption A-9). Do not add
+  staging/production configuration.
+- CI (`.github/workflows/ci.yml`) enforces build, unit tests, integration
+  tests, formatting verification, and secret scanning on every push/PR
+  (ADR-003). Do not bypass it to merge.
 
 ## Workflow Ownership
 

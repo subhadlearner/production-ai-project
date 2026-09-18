@@ -1,0 +1,3 @@
+# Normalize all text files to LF in the repository so that `dotnet format`
+# behaves identically on Windows and Linux (see .editorconfig).
+* text=auto eol=lf

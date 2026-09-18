@@ -1,0 +1,75 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+# Least privilege: the pipeline only reads the repository.
+permissions:
+  contents: read
+
+# Cancel superseded runs on the same ref so wasted CI minutes are not spent.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOTNET_NOLOGO: "true"
+  DOTNET_CLI_TELEMETRY_OPTOUT: "true"
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: "true"
+  GITLEAKS_VERSION: "8.30.1"
+
+jobs:
+  # Single job on a single OS to keep CI cost at the documented minimum
+  # (no build matrix). See docs/adr/ADR-003-ci-provider.md.
+  build-test-and-scan:
+    name: Build, test, quality and security
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          # Full history so the secret scan can inspect every commit.
+          fetch-depth: 0
+
+      - name: Set up .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', 'Directory.Build.props', 'global.json', 'nuget.config') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Restore (includes NuGet Audit)
+        run: dotnet restore
+
+      - name: Build (analyzers, warnings as errors)
+        run: dotnet build --configuration Release --no-restore
+
+      - name: Unit tests
+        run: dotnet test tests/HealthApi.UnitTests --configuration Release --no-build
+
+      - name: Integration tests
+        run: dotnet test tests/HealthApi.IntegrationTests --configuration Release --no-build
+
+      - name: Verify formatting
+        run: dotnet format --verify-no-changes
+
+      - name: Install gitleaks
+        run: |
+          curl --silent --show-error --fail --location \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" \
+            --output /tmp/gitleaks.tar.gz
+          tar --extract --gzip --file /tmp/gitleaks.tar.gz --directory /tmp gitleaks
+          sudo install /tmp/gitleaks /usr/local/bin/gitleaks
+          gitleaks version
+
+      - name: Secret scan
+        run: gitleaks detect --no-banner --exit-code 1

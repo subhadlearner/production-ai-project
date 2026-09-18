@@ -1,12 +1,47 @@
-# Project Name
+# Health API — Engineering Workflow Smoke Test
 
-Briefly describe the project.
+A tiny, production-grade HTTP Health API used to validate the full
+AI-assisted engineering workflow end-to-end (PRD → architecture →
+project-init → spec → implement → verify → review → CI), at zero/near-zero
+infrastructure cost.
 
 ## Purpose
 
-This repository is a reusable production-grade AI-assisted software-engineering template.
+This repository implements **PRD-001** (`docs/prd/PRD-001-health-api.md`):
+a single `GET /health` endpoint that returns HTTP 200 with a JSON body
+containing a `status` indicator and the application's version, sourced
+from build/assembly metadata. It has no database, authentication, message
+queue, external integration, or UI by design (PRD non-goals NG1–NG8) —
+its only purpose is to give the engineering workflow a real, minimal, but
+genuinely production-shaped piece of software to exercise.
 
-The project-specific technology stack is selected during `/architect` and synchronized into the repository during `/project-init`.
+**Status:** PRD, architecture, and ADRs are approved; SPEC-001
+(`docs/specs/SPEC-001-health-endpoint-and-ci-bootstrap.md`) is implemented.
+The application, its unit and integration test suites, and the CI workflow
+exist and pass locally. `/verify` and `/review` have not yet run, so the
+implementation is not yet confirmed complete.
+
+## Technology Stack (Approved)
+
+Selected during `/architect` (`docs/architecture/ARCH-001-health-api.md`)
+and recorded in `AGENTS.md`:
+
+- **Language/Runtime:** C# on .NET 10 (LTS)
+- **Framework:** ASP.NET Core, Minimal API hosting model
+- **Package Manager:** NuGet via the `dotnet` CLI
+- **Unit Tests:** xUnit
+- **Integration Tests:** `Microsoft.AspNetCore.Mvc.Testing`
+  (`WebApplicationFactory<Program>`) + xUnit
+- **Formatting / Static Analysis:** `dotnet format` + built-in Roslyn
+  analyzers, warnings treated as errors
+- **Security / Dependency Scanning:** NuGet Audit (built-in) + GitHub
+  Dependabot + `gitleaks`
+- **CI/CD:** GitHub Actions (`ubuntu-latest`)
+- **Database / Cloud / IaC:** Not Applicable — no persistence and no
+  production deployment (see `docs/adr/ADR-002-zero-infrastructure-boundary.md`)
+
+See `docs/architecture/ARCH-001-health-api.md` for the full technology
+baseline and rationale, and `docs/adr/` for individual decisions.
 
 ## Development Workflow
 
@@ -100,20 +135,83 @@ If required technology decisions are missing, `/project-init` must stop instead 
 .
 ├── AGENTS.md
 ├── README.md
-├── .gitignore
+├── HealthApi.sln
+├── global.json                          # pins the .NET 10 SDK
+├── Directory.Build.props                # nullable + analyzers + warnings-as-errors
+├── .editorconfig
+├── .gitattributes                       # normalizes tracked text files to LF
+├── nuget.config                         # public NuGet.org package source only
+├── .github/
+│   └── workflows/
+│       └── ci.yml                       # restore, build, tests, format, secret scan
 ├── .kilo/
 │   ├── rules/
 │   └── skills/
-└── docs/
-    ├── prd/
-    ├── architecture/
-    ├── adr/
-    ├── specs/
-    ├── reviews/
-    └── verification/
+├── docs/
+│   ├── prd/            # PRD-001-health-api.md
+│   ├── architecture/   # ARCH-001-health-api.md
+│   ├── adr/            # ADR-001..004
+│   ├── specs/          # SPEC-001-health-endpoint-and-ci-bootstrap.md
+│   ├── reviews/
+│   └── verification/
+├── src/
+│   └── HealthApi/
+│       ├── Program.cs                   # Minimal API composition root
+│       ├── HealthEndpoint.cs            # GET /health
+│       ├── HealthResponse.cs            # JSON response contract
+│       ├── IAppVersionProvider.cs
+│       ├── AssemblyAppVersionProvider.cs
+│       ├── appsettings.json
+│       ├── appsettings.Development.json
+│       └── Properties/launchSettings.json
+└── tests/
+    ├── .editorconfig                    # test-only analyzer scoping
+    ├── HealthApi.UnitTests/
+    │   ├── FakeAppVersionProvider.cs
+    │   └── HealthEndpointTests.cs
+    └── HealthApi.IntegrationTests/
+        └── HealthEndpointIntegrationTests.cs
 ```
 
 Project-local concurrent worktrees may use `.kilo/worktrees/`, which is intentionally ignored by Git.
+
+## Prerequisites
+
+- .NET 10 SDK (pinned by `global.json` to the .NET 10 feature band)
+
+## Local Development
+
+```
+dotnet restore
+dotnet build --configuration Release --no-restore
+dotnet test tests/HealthApi.UnitTests --configuration Release --no-build
+dotnet test tests/HealthApi.IntegrationTests --configuration Release --no-build
+dotnet format --verify-no-changes
+```
+
+Run the service and verify it manually (PRD AC-10):
+
+```
+ASPNETCORE_URLS=http://localhost:5080 dotnet run --project src/HealthApi
+```
+
+In a second terminal:
+
+```
+curl http://localhost:5080/health
+```
+
+Expected response:
+
+```json
+{"status":"healthy","version":"1.0.0"}
+```
+
+`curl -i` shows `HTTP/1.1 200 OK` and `Content-Type: application/json; charset=utf-8`.
+A `POST` to `/health` returns `405`, and an undefined path returns `404`.
+
+These commands are authoritative per `AGENTS.md` — do not substitute
+different tooling.
 
 ## Branch and Worktree Workflow
 
@@ -223,17 +321,20 @@ The AI review results are:
 
 ## CI and Merge
 
-The approved architecture defines the CI/CD approach.
+CI is implemented in `.github/workflows/ci.yml` (GitHub Actions,
+`ubuntu-latest`, single job — see `docs/adr/ADR-003-ci-provider.md`). On
+every push and pull request it runs:
 
-A greenfield project should include an explicit specification for repository/bootstrap work when CI/CD, IaC bootstrap, or project scaffolding does not yet exist.
+- dependency restore (with built-in NuGet Audit)
+- Release build with analyzers and warnings-as-errors
+- unit tests
+- integration tests
+- `dotnet format --verify-no-changes`
+- `gitleaks detect --no-banner --exit-code 1` secret scan (full history)
 
-CI should enforce the applicable:
-
-- build
-- unit/integration/E2E tests
-- lint/format/static analysis
-- security/dependency checks
-- IaC validation
+For a greenfield project, an explicit specification for repository/bootstrap
+work is required when CI/CD, IaC bootstrap, or project scaffolding does not
+yet exist — for this project that is SPEC-001.
 
 Do not bypass CI to merge implementation changes.
 
@@ -257,12 +358,15 @@ production deployment
 
 ## Getting Started
 
-For a new project:
+Project status for this repository:
 
-1. clone or copy this template
-2. replace the project name and description
-3. run `/prd`
-4. proceed through the workflow in order
-5. let `/project-init` populate the actual technology and build/test commands after architecture is approved
+1. `/prd` — done (`docs/prd/PRD-001-health-api.md`)
+2. `/architect` — done (`docs/architecture/ARCH-001-health-api.md`, `docs/adr/`)
+3. `/project-init` — done (`AGENTS.md`, this file)
+4. `/spec` — done (`docs/specs/SPEC-001-health-endpoint-and-ci-bootstrap.md`)
+5. `/implement` — done (application, tests, and CI workflow exist)
+6. `/verify` — next: deterministic verification of SPEC-001
+7. `/review` — after `/verify` returns `DONE`
 
-Do not manually fill technology choices that have not yet been approved by the architecture stage.
+Do not manually fill technology choices; they are approved in `AGENTS.md`.
+Do not proceed to `/review` before `/verify` returns `DONE`.
