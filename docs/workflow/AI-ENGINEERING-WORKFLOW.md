@@ -91,7 +91,7 @@ review failure        → /fix → /verify → /review
 | Pre-review | internal to `/review` | DeepSeek pre-reviewer | review rules | Cost-efficient production review |
 | Senior review | internal to `/review` | Claude Sonnet code-reviewer | pre-review report | Final AI code-review decision |
 | Adversarial review | `/adversarial-check` or risk-triggered inside architecture/spec | Sonnet orchestrator | DeepSeek adversary by default | Challenge high-risk decisions with fresh context |
-| Premium adversarial escalation | internal escalation | Claude Opus adversary | explicit user approval required | Rare critical second opinion after DeepSeek adversarial pass |
+| Premium adversarial review | user-directed or internal escalation | Claude Opus adversary | direct when user requests; approval required when agent-proposed | Rare critical or user-selected premium second opinion |
 
 ---
 
@@ -300,6 +300,18 @@ DeepSeek adversary
 Sonnet reconciliation
 ```
 
+If the user explicitly requests Opus for the architecture review, the premium path may instead be:
+
+```text
+Sonnet architecture
+       ↓
+Opus adversary
+       ↓
+Sonnet reconciliation
+```
+
+No prior DeepSeek pass is required for that user-directed invocation.
+
 The adversary receives only:
 
 - the smallest reviewable artifact
@@ -317,17 +329,26 @@ It does not receive the author's preferred conclusion or reasoning narrative.
 DeepSeek Flash
 ```
 
-This is the normal adversarial second opinion.
+This is the normal cost-controlled adversarial second opinion.
 
-### Escalation adversary
+### Opus adversary
 
 ```text
 Claude Opus
 ```
 
-Opus is not the default.
+There are two valid ways Opus may be used:
 
-It is used only for rare critical decisions after the DeepSeek adversarial pass.
+1. **Agent-proposed escalation** — after a DeepSeek adversarial pass, when the decision remains rare, critical, and materially risky.
+2. **User-directed premium review** — the user explicitly requests Opus for a specific architecture, specification, or other adversarial review.
+
+When the user explicitly requests Opus:
+
+- invoke Opus directly
+- the request itself authorizes that specific premium invocation
+- do not require a prior DeepSeek adversarial pass
+- do not require Sonnet to justify why Opus is warranted
+- do not add DeepSeek automatically unless the user asks for both
 
 ### Opus escalation criteria
 
@@ -344,11 +365,11 @@ Consider Opus only when one or more of these remain materially relevant after th
 - major irreversible platform lock-in or recurring-cost exposure
 - materially conflicting DeepSeek findings that Sonnet cannot confidently reconcile
 
-### Approval requirement
+### Approval and routing
 
-Every Opus adversarial invocation requires explicit user approval.
+There are two routing modes.
 
-The flow is:
+#### Default / agent-proposed mode
 
 ```text
 High-risk decision
@@ -371,6 +392,20 @@ Sonnet reconciles
         ↓
 continue or block/escalate
 ```
+
+#### User-directed mode
+
+```text
+User: "Use Opus to adversarially review this architecture/spec"
+      ↓
+Claude Opus adversary
+      ↓
+Sonnet reconciles
+      ↓
+continue or block/escalate
+```
+
+In user-directed mode, the explicit request is the authorization for that specific Opus call.
 
 The Opus result is evidence, not authority.
 
@@ -503,7 +538,9 @@ DeepSeek adversary
 Sonnet reconciliation
 ```
 
-Opus may be escalated only under the rare-critical policy above and only with explicit approval.
+If the user explicitly requests Opus for a specific spec review, Opus may be invoked directly without a prior DeepSeek pass.
+
+When Opus is agent-proposed rather than user-selected, use the rare-critical escalation policy and request approval first.
 
 ---
 
