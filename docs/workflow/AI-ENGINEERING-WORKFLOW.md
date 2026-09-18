@@ -1016,7 +1016,421 @@ Do not silently solve an upstream authority problem in a downstream stage.
 
 ---
 
-## 18. Decision Guide — Which Command Should I Run?
+## 18. How to Invoke Commands — Prompt Templates
+
+You normally invoke a workflow command and then describe the specific job in plain language.
+
+General pattern:
+
+```text
+/<command>
+
+What I want:
+...
+
+Relevant context:
+...
+
+Known constraints:
+...
+
+Specific concern or desired emphasis:
+...
+```
+
+You do **not** need to paste PRDs, architecture documents, specs, ADRs, or source files that are already in the repository. Prefer referencing their IDs or paths so the agent can inspect the authoritative version.
+
+You also do not need to guess the root cause of a bug or construct the adversarial contract yourself. Give the agent the observable problem or the decision you want challenged.
+
+### 18.1 `/grill`
+
+Use when the product idea is still broad, coupled, or ambiguous.
+
+```text
+/grill
+
+I want to build a production-grade personal finance application for Indian retail investors.
+
+The application should help users track goals, investments, and progress over time.
+
+Known constraints:
+- web application
+- cost-conscious architecture
+- security and privacy matter
+- maintained by a very small team
+
+Please research facts you can determine yourself and ask me only for product decisions, priorities, trade-offs, and constraints that genuinely need my input.
+```
+
+Short form:
+
+```text
+/grill
+
+I want to add cross-account AWS event ingestion.
+Grill me until the product behavior, scope, security boundaries, failure expectations, and non-goals are clear enough for /prd.
+```
+
+### 18.2 `/prd`
+
+Use when product intent is sufficiently clear.
+
+```text
+/prd
+
+Create the PRD for the capability we just completed discovery for.
+
+Use the latest approved discovery brief under docs/discovery/.
+Preserve confirmed decisions and non-goals.
+Do not design implementation architecture yet.
+```
+
+For a clear feature that skipped grilling:
+
+```text
+/prd
+
+Create a production PRD for adding CSV export to the reporting module.
+
+Requirements:
+- export the currently filtered report
+- preserve displayed column order
+- UTF-8 CSV
+- no new persistence
+- maximum export size: 50,000 rows
+
+Capture edge cases, security/privacy concerns, measurable acceptance criteria, and explicit non-goals.
+```
+
+### 18.3 `/architect`
+
+Use after the PRD is ready.
+
+```text
+/architect
+
+Design the production architecture for the latest approved PRD.
+
+Priorities:
+- minimize operational burden
+- minimize unnecessary fixed cloud cost
+- preserve security and reliability
+- make all major technology choices explicit
+- create ADRs for material decisions
+
+Use the normal cost-controlled adversarial policy for high-risk decisions.
+```
+
+User-directed Opus architecture review:
+
+```text
+/architect
+
+Design the production architecture for the latest approved PRD.
+
+For the final adversarial review of the authentication, data-integrity, and cross-account IAM decisions, use Opus directly.
+My request authorizes those specific Opus adversarial checks.
+```
+
+### 18.4 `/project-init`
+
+Use after `ARCHITECTURE_READY`.
+
+```text
+/project-init
+
+Initialize this repository from the latest approved architecture and ADRs.
+
+Populate the project technology baseline, build/test/quality commands, rules, and Skill Coverage Matrix.
+
+Do not invent or replace architecture decisions.
+Do not implement product functionality.
+```
+
+### 18.5 `/spec`
+
+Use to turn approved architecture into implementable work.
+
+```text
+/spec
+
+Create implementation specifications for the approved PRD and architecture.
+
+Keep each specification independently implementable and verifiable.
+Respect the 30K–60K preferred context range and 100K hard ceiling.
+Define stable test seams and explicitly decide TDD applicability for each spec.
+Identify dependencies and safe parallelism.
+```
+
+Targeted spec:
+
+```text
+/spec
+
+Create the next implementation spec for the order-submission idempotency capability defined in the architecture and ADR-009.
+
+Pay particular attention to concurrency, duplicate delivery, retries, observability, and deterministic acceptance criteria.
+Use the normal adversarial policy because this is data-integrity sensitive.
+```
+
+User-directed Opus spec review:
+
+```text
+/spec
+
+Create SPEC-012 for the production database migration and cutover.
+
+Use Opus directly for the adversarial review of this specification because rollback/data integrity are critical.
+My request authorizes this specific Opus review.
+```
+
+### 18.6 `/implement`
+
+Reference the exact specification.
+
+```text
+/implement
+
+Implement SPEC-012.
+
+Follow the approved architecture, ADRs, project rules, and relevant skills.
+Use the TDD mode defined by the specification.
+Do not broaden scope or change architecture.
+```
+
+For a parallel worktree:
+
+```text
+/implement
+
+Implement SPEC-021 in its dedicated branch/worktree.
+
+Do not modify files owned by concurrently running SPEC-022.
+Follow the dependencies and file-ownership guidance in the spec.
+```
+
+### 18.7 `/verify`
+
+Usually only the spec reference is needed because verification reads the project-defined commands and acceptance criteria.
+
+```text
+/verify
+
+Verify SPEC-012 completely against its acceptance criteria and the repository-defined build, test, static-analysis, formatting, security, and IaC checks.
+
+Return DONE only with deterministic evidence.
+```
+
+If a particular environment matters:
+
+```text
+/verify
+
+Verify SPEC-012.
+
+The reported failure occurs only with the local integration-test profile.
+Include that profile in the required deterministic checks.
+```
+
+### 18.8 `/fix`
+
+Use when the blocker is already known from verification or review.
+
+```text
+/fix
+
+Fix the blockers from the latest /verify result for SPEC-012.
+
+Make the smallest correct change.
+Do not weaken tests, assertions, analyzers, thresholds, security gates, or acceptance criteria.
+Return control to /verify when the blockers appear resolved.
+```
+
+For a review finding:
+
+```text
+/fix
+
+Address only the BLOCKING findings from the latest /review for SPEC-012.
+
+Preserve the approved architecture and public contracts.
+Do not implement the non-blocking suggestions unless they are required by the fix.
+```
+
+### 18.9 `/diagnose`
+
+Use when you know the symptom but **do not know the root cause**.
+
+You are not expected to diagnose the issue yourself.
+
+Include whatever you know:
+
+- observed behavior
+- expected behavior
+- environment
+- frequency
+- known reproduction steps
+- sanitized error/log output
+- relevant endpoint/event/spec/test/recent change
+
+Concurrency example:
+
+```text
+/diagnose
+
+We have a concurrency bug in the create-customer flow.
+
+Observed:
+Three POST requests arriving almost simultaneously sometimes create three different customer partition keys even though only one customer should be created.
+
+Expected:
+All concurrent requests for the same logical customer should converge on one record according to the existing specification.
+
+Environment:
+.NET API using DynamoDB.
+
+Known clue:
+Each request appears to perform a read/check first, and all three can observe "not found" before writing.
+
+Please do not jump straight to a fix.
+First build the tightest reproducible test or harness for the exact race, minimize it, generate falsifiable hypotheses, and establish the root cause.
+```
+
+Intermittent integration example:
+
+```text
+/diagnose
+
+Our integration test for order submission fails around 1 in 20 runs.
+
+Observed:
+The API returns 202, but the expected downstream event is occasionally not visible before the test times out.
+
+Expected:
+The event should be observable within the contractually defined timeout.
+
+I do not know whether the problem is the application, test synchronization, queue/eventual consistency, or environment.
+
+Use the existing spec and repository to establish expected behavior.
+Build a red-capable repro before proposing a fix.
+```
+
+Minimal form:
+
+```text
+/diagnose
+
+GET /orders/{id} occasionally returns stale status for several seconds after an update.
+Expected behavior is defined in SPEC-014.
+Please reproduce and establish the root cause before /fix.
+```
+
+### 18.10 `/adversarial-check`
+
+Use when you want a fresh second opinion on a high-risk decision.
+
+Default DeepSeek adversary:
+
+```text
+/adversarial-check
+
+Review the authentication and authorization design in the current architecture.
+
+Focus especially on:
+- privilege escalation
+- tenant isolation
+- token/session failure modes
+- operational recovery
+
+Use the normal adversarial path.
+```
+
+Concurrency/data-integrity example:
+
+```text
+/adversarial-check
+
+Challenge the DynamoDB idempotency and concurrency design in ADR-007 and the related architecture section.
+
+Try to find any sequence of concurrent requests, retries, or duplicate events that can violate the stated uniqueness/data-integrity guarantees.
+```
+
+Direct user-selected Opus:
+
+```text
+/adversarial-check
+
+Use Opus directly for this review.
+
+Review the production cross-account IAM and event-ingestion architecture in ADR-011 and the current architecture document.
+
+I want a premium fresh-context challenge focused on trust boundaries, confused-deputy risks, privilege escalation, failure recovery, and assumptions that could create a large production blast radius.
+```
+
+The phrase `Use Opus directly for this review` is sufficient authorization for that specific premium adversarial invocation.
+
+### 18.11 `/review`
+
+Run only after `/verify` returns `DONE`.
+
+```text
+/review
+
+Review the implementation of SPEC-012 using the latest successful verification result.
+
+Run the normal cost-controlled review pipeline:
+DeepSeek pre-review first, then Sonnet senior review only if the pre-review is clean.
+```
+
+You normally do not invoke the internal `pre-reviewer` or `code-reviewer` directly.
+
+### 18.12 Choosing Between `/fix` and `/diagnose`
+
+Use:
+
+```text
+/fix
+```
+
+when the blocker and cause are already reasonably clear.
+
+Examples:
+
+- compile error
+- incorrect validation condition
+- missing required test
+- straightforward review finding
+- lint/format failure
+
+Use:
+
+```text
+/diagnose
+```
+
+when you have a symptom but the root cause is uncertain.
+
+Examples:
+
+- intermittent failure
+- race condition
+- stale data
+- performance regression
+- distributed-system timing issue
+- integration failure with several plausible causes
+- repeated unsuccessful fix attempts
+
+A useful shorthand is:
+
+```text
+I know what is wrong and why → /fix
+
+I know what is wrong but not why → /diagnose
+```
+
+---
+
+## 19. Decision Guide — Which Command Should I Run?
 
 | Situation | Command |
 | --- | --- |
@@ -1034,7 +1448,7 @@ Do not silently solve an upstream authority problem in a downstream stage.
 
 ---
 
-## 19. Full Workflow Diagram
+## 20. Full Workflow Diagram
 
 ```text
                            ┌────────────────────────────┐
@@ -1185,7 +1599,7 @@ Do not silently solve an upstream authority problem in a downstream stage.
 
 ---
 
-## 20. Hard-Bug Diagram
+## 21. Hard-Bug Diagram
 
 ```text
 Observed defect
@@ -1226,7 +1640,7 @@ Root cause obvious?
 
 ---
 
-## 21. Production Safety Summary
+## 22. Production Safety Summary
 
 Before calling work complete:
 
