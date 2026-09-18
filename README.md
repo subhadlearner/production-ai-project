@@ -62,7 +62,7 @@ DeepSeek pre-review
   ├─ CHANGES_REQUIRED → /fix → /verify → /review
   └─ READY_FOR_SENIOR_REVIEW
                    ↓
-            Sonnet senior review
+            GPT-5.6 Sol senior review
   ├─ REQUEST CHANGES → /fix → /verify → /review
   └─ APPROVE
        ↓
@@ -169,7 +169,7 @@ Specifications define stable observable test seams and whether TDD is applicable
 
 Use `/diagnose` when a defect is difficult to reproduce or localize. It creates a red-capable feedback loop before root-cause claims and may persist a concise report under `docs/diagnostics/`.
 
-Use `/adversarial-check` for high-risk architecture/specification/migration/security decisions. It sends only the artifact plus its contract to a fresh-context adversary and then reconciles findings. DeepSeek Flash is the default adversary. You may explicitly request Claude Opus directly for a specific adversarial review; that user request authorizes the premium invocation without a prior DeepSeek pass or Sonnet justification. It is not a substitute for `/verify`, `/review`, CI, or human approval.
+Use `/adversarial-check` for high-risk architecture/specification/migration/security decisions. DeepSeek Flash is the default adversary. You may explicitly request Claude Sonnet for a paid cross-model second opinion or Claude Opus for a premium critical review; a user-directed request authorizes that specific invocation without a prior DeepSeek pass or GPT-5.6 Sol justification. It is not a substitute for `/verify`, `/review`, CI, or human approval.
 
 ## Project Skills
 
@@ -246,12 +246,26 @@ CHANGES_REQUIRED or REQUEST CHANGES
 
 It must validate all required applicable checks and provide deterministic evidence for the specification's acceptance criteria.
 
+## Model Routing
+
+The default workflow uses:
+
+- GPT-5.6 Sol for discovery, PRD, architecture, specification design, adversarial reconciliation, and senior review
+- GPT-5.6 Luna for project initialization and lightweight repository/documentation work
+- DeepSeek Flash for implementation, verification, repair, diagnosis, default adversarial checks, and pre-review
+- Claude Sonnet as an optional paid independent second opinion
+- Claude Opus as an optional premium rare-critical escalation
+
+GPT-5.6 Sol/Luna use the connected ChatGPT subscription in Kilo; Claude Sonnet/Opus consume the separate Anthropic API budget.
+
+Do not reduce relevant context merely to save tokens. Remove irrelevant context, not required context.
+
 ## Review Model
 
 The review pipeline is cost-controlled:
 
 1. DeepSeek performs the first-pass pre-review.
-2. Claude Sonnet runs only when pre-review returns `READY_FOR_SENIOR_REVIEW`.
+2. GPT-5.6 Sol runs only when pre-review returns `READY_FOR_SENIOR_REVIEW`.
 3. CI remains the deterministic merge gate.
 4. Production deployment still requires human approval.
 
