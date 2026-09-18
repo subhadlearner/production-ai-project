@@ -75,6 +75,10 @@ human-approved production deployment
 
 Blocked workflow stages must report the blocker, its owner, the minimum required action, and the exact next command.
 
+For the complete command, agent, model-routing, TDD, diagnosis, adversarial-escalation, skill, and blocked-state reference, see:
+
+`docs/workflow/AI-ENGINEERING-WORKFLOW.md`
+
 ## Technology Ownership
 
 The major technology baseline is chosen during:
