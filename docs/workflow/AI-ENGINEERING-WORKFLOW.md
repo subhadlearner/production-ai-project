@@ -117,6 +117,48 @@ If the workflow needs another round of user input, the child returns the questio
 
 The selected model remains in effect for that workflow session unless the user changes it explicitly.
 
+### Workflow model and adversary model are independent
+
+For `/architect` and `/spec`, distinguish two separate choices:
+
+- **workflow model** — authors and owns the architecture/specification
+- **adversary model** — independently challenges a high-risk artifact
+
+A plain request such as:
+
+```text
+/architect ... Use Claude.
+```
+
+means Claude Sonnet authors the architecture. It does **not** also select Claude as the adversary.
+
+Unless separately overridden, the adversary remains DeepSeek Flash.
+
+To select the adversary independently:
+
+```text
+/architect ... Use Claude.
+For adversarial review use Opus.
+```
+
+means:
+
+```text
+Claude Sonnet authors architecture
+→ Claude Opus challenges the high-risk artifact
+→ Claude Sonnet reconciles findings
+```
+
+Other valid adversary phrases include:
+
+```text
+Use Sonnet as the adversary.
+Adversary: GPT.
+For adversarial review use DeepSeek.
+```
+
+For the dedicated `/adversarial-check` command, a model phrase selects the adversary model directly because adversarial review is the command's sole purpose.
+
 ### Important behavior
 
 The model choice changes the intelligence provider only.
@@ -363,34 +405,47 @@ Examples:
 The default challenge is:
 
 ```text
-GPT-5.6 Sol architecture
+selected architecture workflow model
        ↓
 DeepSeek adversary
        ↓
-GPT-5.6 Sol reconciliation
+selected architecture workflow model reconciles
 ```
 
-If the user explicitly requests Claude Sonnet:
+Example:
 
 ```text
-GPT-5.6 Sol architecture
-       ↓
-Claude Sonnet adversary
-       ↓
-GPT-5.6 Sol reconciliation
+/architect ... Use Claude.
 ```
 
-If the user explicitly requests Claude Opus:
+means:
 
 ```text
-GPT-5.6 Sol architecture
+Claude Sonnet architecture
+       ↓
+DeepSeek adversary
+       ↓
+Claude Sonnet reconciliation
+```
+
+If the user separately requests a different adversary:
+
+```text
+/architect ... Use Claude.
+For adversarial review use Opus.
+```
+
+then:
+
+```text
+Claude Sonnet architecture
        ↓
 Claude Opus adversary
        ↓
-GPT-5.6 Sol reconciliation
+Claude Sonnet reconciliation
 ```
 
-No prior DeepSeek pass is required for either user-directed Claude invocation.
+A user-directed adversary does not require a prior DeepSeek pass.
 
 The adversary receives only:
 
@@ -704,19 +759,28 @@ Reason: ...
 
 ### Spec adversarial gate
 
-High-risk specs receive the same default adversarial pattern:
+High-risk specs use the same separation:
 
 ```text
-GPT-5.6 Sol spec
+selected specification workflow model
    ↓
 DeepSeek adversary
    ↓
-GPT-5.6 Sol reconciliation
+selected specification workflow model reconciles
 ```
 
-The user may directly request Claude Sonnet or Claude Opus for a specific spec adversarial review. No prior DeepSeek pass is required for a user-directed Claude invocation.
+A separate adversary phrase can override only the adversary:
 
-When Claude is agent-proposed rather than user-selected, explicit approval is required.
+```text
+/spec ... Use Terra.
+For adversarial review use Sonnet.
+```
+
+means Terra authors and owns the spec, Claude Sonnet challenges it, and Terra reconciles the findings.
+
+A user-directed adversary does not require a prior DeepSeek pass.
+
+When a paid Claude adversary is agent-proposed rather than user-selected, explicit approval is required.
 
 ---
 
@@ -1309,16 +1373,18 @@ Priorities:
 Use the normal cost-controlled adversarial policy for high-risk decisions. GPT-5.6 Sol is the architecture model; DeepSeek is the default adversary.
 ```
 
-User-directed Opus architecture review:
+Independent workflow/adversary selection:
 
 ```text
 /architect
 
 Design the production architecture for the latest approved PRD.
+Use Claude.
 
-For the final adversarial review of the authentication, data-integrity, and cross-account IAM decisions, use Opus directly.
-My request authorizes those specific Opus adversarial checks.
+For the final adversarial review of the authentication, data-integrity, and cross-account IAM decisions, use Opus.
 ```
+
+This means Claude Sonnet authors the architecture, Opus challenges those high-risk decisions, and Claude Sonnet reconciles the findings.
 
 ### 19.4 `/project-init`
 
@@ -1361,16 +1427,18 @@ Pay particular attention to concurrency, duplicate delivery, retries, observabil
 Use the normal adversarial policy because this is data-integrity sensitive.
 ```
 
-User-directed Opus spec review:
+Independent spec/adversary selection:
 
 ```text
 /spec
 
 Create SPEC-012 for the production database migration and cutover.
+Use Terra.
 
-Use Opus directly for the adversarial review of this specification because rollback/data integrity are critical.
-My request authorizes this specific Opus review.
+For adversarial review use Opus because rollback/data integrity are critical.
 ```
+
+This means Terra authors the specification, Opus challenges it, and Terra reconciles the findings.
 
 ### 19.6 `/implement`
 
@@ -1551,8 +1619,9 @@ Direct user-selected Claude Sonnet:
 Use Claude Sonnet directly for this review.
 
 Challenge ADR-007 and the related architecture section for concurrency, retry, idempotency, and data-integrity failures.
-I want an independent Anthropic-model second opinion.
 ```
+
+Because `/adversarial-check` is itself an adversarial command, `Use Claude Sonnet` selects the adversary directly.
 
 Direct user-selected Opus:
 
