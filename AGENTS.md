@@ -144,15 +144,32 @@ Technology decisions are owned by the architecture stage.
 
 The authority chain is:
 
-1. `/prd` defines requirements and constraints.
-2. `/architect` selects and approves the technology stack.
-3. `/project-init` records and operationalizes those decisions.
-4. `/spec` decomposes the approved design.
-5. `/implement` executes the approved specification.
+1. `/grill` optionally clarifies product intent and coupled decisions before PRD work.
+2. `/prd` defines requirements and constraints.
+3. `/architect` selects and approves the technology stack.
+4. `/project-init` records and operationalizes those decisions.
+5. `/spec` decomposes the approved design.
+6. `/implement` executes the approved specification.
+
+`/diagnose` localizes difficult defects without redefining intended behavior.
+
+`/adversarial-check` challenges high-risk artifacts but does not replace the authority of `/prd`, `/architect`, `/spec`, `/verify`, or `/review`.
 
 `/project-init`, `/spec`, `/implement`, `/verify`, `/fix`, and `/review` must not independently replace the approved technology stack.
 
 If a required technology decision is missing, return to architecture rather than guessing.
+
+## Discovery
+
+For large, ambiguous, or high-stakes product work, use `/grill` before `/prd`.
+
+Discovery briefs are stored under:
+
+`docs/discovery/`
+
+A discovery brief should preserve confirmed product decisions, scope/non-goals, constraints, assumptions, and unresolved non-blocking questions without duplicating the full PRD.
+
+The agent should research discoverable facts itself; product decisions and trade-offs remain human decisions.
 
 ## Project Initialization
 
@@ -247,6 +264,36 @@ Project-specific skills should be used for guidance that generic technology skil
 - organization-specific API behavior
 - approved infrastructure patterns
 
+## Test-First and Adversarial Design
+
+Specifications should identify stable observable test seams and explicitly state either:
+
+- `TDD: APPLICABLE`
+- `TDD: NOT_APPLICABLE` with a short reason
+
+When TDD applies, implementation should work in thin red → green behavioral slices and avoid tests coupled to private implementation details.
+
+High-risk design/specification decisions should receive fresh-context adversarial challenge when they involve areas such as:
+
+- authentication/authorization or IAM
+- concurrency, ordering, idempotency, or distributed consistency
+- destructive migrations
+- data integrity/recovery
+- public API or event-contract compatibility
+- financial/irreversible behavior
+- security-sensitive infrastructure
+
+Adversarial findings are evidence to reconcile, not authority. The owning lifecycle stage remains responsible for the decision.
+
+Adversarial model routing is cost-controlled:
+
+- default adversary: DeepSeek Flash
+- agent-proposed escalation adversary: Claude Opus, only for rare critical decisions after the default DeepSeek pass
+- user-directed override: the user may explicitly choose Claude Opus for an architecture, specification, or other adversarial review
+- a user-directed Opus request authorizes that specific invocation directly; it does not require a prior DeepSeek pass or Sonnet justification
+- when Opus is agent-proposed, explicit user approval is still required
+- Opus output remains evidence; it does not replace the authority of the owning workflow stage
+
 ## Specification Discipline
 
 Implementation must be based on a specification under:
@@ -288,11 +335,11 @@ A specification must remain consistent with the approved architecture.
 - Implement only the approved specification.
 - Reuse existing project conventions.
 - Follow the technology stack recorded in this file.
-- Follow relevant project rules and skills.
+- Follow relevant global/project skills, including TDD when marked applicable.
 - Keep changes incremental and reversible.
 - Do not invent requirements.
 - Do not silently broaden scope.
-- Do not weaken tests merely to make them pass.
+- Do not weaken tests, assertions, quality thresholds, analyzers, or security gates merely to make implementation pass.
 - Do not remove validation or error handling without explicit justification.
 - Avoid unnecessary abstractions and dependencies.
 - Prefer straightforward code over speculative extensibility.
@@ -343,10 +390,36 @@ If `/verify` returns `NOT_DONE`, do not proceed to `/review`.
 
 Use `/fix`.
 
+## Diagnostic Workflow
+
+Use `/diagnose` for difficult runtime, integration, concurrency, performance, or intermittent failures where the root cause is not obvious.
+
+The diagnostic flow is:
+
+1. define the exact symptom and expected behavior
+2. build a tight red-capable feedback loop
+3. reproduce and minimize
+4. generate falsifiable hypotheses
+5. test one variable at a time
+6. establish root cause from evidence
+7. define a regression-test strategy
+8. hand off to `/fix`
+
+Store non-trivial diagnostic reports under:
+
+`docs/diagnostics/`
+
+The normal path is:
+
+`/diagnose → DIAGNOSIS_READY → /fix → /verify`
+
+Do not use diagnosis to redefine product behavior or architecture.
+
 ## Repair Workflow
 
 Use `/fix` after any of the following:
 
+- `/diagnose` returns `DIAGNOSIS_READY`
 - `/verify` returns `NOT_DONE`
 - pre-review returns `CHANGES_REQUIRED`
 - senior review returns `REQUEST CHANGES`
@@ -522,6 +595,10 @@ Production deployment requires explicit human approval.
 The normal lifecycle is:
 
 ```text
+/grill (optional)
+  ↓
+DISCOVERY_READY
+  ↓
 /prd
   ↓
 PRD_READY
@@ -561,6 +638,13 @@ DeepSeek pre-review
    PR / merge
        ↓
 human-approved production deployment
+```
+
+Auxiliary paths:
+
+```text
+hard bug → /diagnose → /fix → /verify
+high-risk decision → /adversarial-check → owning stage continues or resolves findings
 ```
 
 Blocked stages must state the owner, required action, and exact next command rather than leaving the operator to infer the recovery path.

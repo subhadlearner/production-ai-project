@@ -12,17 +12,26 @@ The project-specific technology stack is selected during `/architect` and synchr
 
 The standard lifecycle is:
 
-1. `/prd`
-2. `/architect`
-3. `/project-init`
-4. `/spec`
-5. `/implement`
-6. `/verify`
-7. `/review`
+1. `/grill` when discovery is needed (optional)
+2. `/prd`
+3. `/architect`
+4. `/project-init`
+5. `/spec`
+6. `/implement`
+7. `/verify`
+8. `/review`
+
+For difficult defects use `/diagnose → /fix → /verify`.
+
+For high-risk decisions use `/adversarial-check` or the automatic risk-triggered checks inside architecture/specification work.
 
 The complete flow is:
 
 ```text
+/grill (optional)
+  ↓
+DISCOVERY_READY
+  ↓
 /prd
   ↓
 PRD_READY
@@ -66,6 +75,10 @@ human-approved production deployment
 
 Blocked workflow stages must report the blocker, its owner, the minimum required action, and the exact next command.
 
+For the complete command, agent, model-routing, TDD, diagnosis, adversarial-escalation, skill, blocked-state, and **sample invocation prompt** reference, see:
+
+`docs/workflow/AI-ENGINEERING-WORKFLOW.md`
+
 ## Technology Ownership
 
 The major technology baseline is chosen during:
@@ -105,6 +118,8 @@ If required technology decisions are missing, `/project-init` must stop instead 
 │   ├── rules/
 │   └── skills/
 └── docs/
+    ├── discovery/
+    ├── diagnostics/
     ├── prd/
     ├── architecture/
     ├── adr/
@@ -146,6 +161,16 @@ They do not create another branch for the same specification.
 
 Merge should happen through the normal PR/CI process.
 
+## Discovery, TDD, Diagnosis, and Adversarial Checks
+
+Use `/grill` before PRD work when an idea is large, ambiguous, or contains coupled decisions. Confirmed discovery is written under `docs/discovery/` and becomes input to `/prd`.
+
+Specifications define stable observable test seams and whether TDD is applicable. When applicable, `/implement` uses behavioral red → green vertical slices rather than writing tests only after implementation.
+
+Use `/diagnose` when a defect is difficult to reproduce or localize. It creates a red-capable feedback loop before root-cause claims and may persist a concise report under `docs/diagnostics/`.
+
+Use `/adversarial-check` for high-risk architecture/specification/migration/security decisions. It sends only the artifact plus its contract to a fresh-context adversary and then reconciles findings. DeepSeek Flash is the default adversary. You may explicitly request Claude Opus directly for a specific adversarial review; that user request authorizes the premium invocation without a prior DeepSeek pass or Sonnet justification. It is not a substitute for `/verify`, `/review`, CI, or human approval.
+
 ## Project Skills
 
 Project-scoped skills are stored under:
@@ -172,6 +197,20 @@ Implementation is not ready for review until `/verify` returns:
 `DONE`
 
 Normal repair flow:
+
+For a hard defect whose cause is not established:
+
+```text
+/diagnose
+   ↓
+DIAGNOSIS_READY
+   ↓
+/fix
+   ↓
+/verify
+```
+
+For implementation verification:
 
 ```text
 /implement
@@ -261,7 +300,7 @@ For a new project:
 
 1. clone or copy this template
 2. replace the project name and description
-3. run `/prd`
+3. run `/grill` if the product idea is still broad/ambiguous; otherwise start at `/prd`
 4. proceed through the workflow in order
 5. let `/project-init` populate the actual technology and build/test commands after architecture is approved
 
