@@ -288,11 +288,73 @@ Adversarial findings are evidence to reconcile, not authority. The owning lifecy
 Adversarial model routing is cost-controlled:
 
 - default adversary: DeepSeek Flash
-- agent-proposed escalation adversary: Claude Opus, only for rare critical decisions after the default DeepSeek pass
-- user-directed override: the user may explicitly choose Claude Opus for an architecture, specification, or other adversarial review
-- a user-directed Opus request authorizes that specific invocation directly; it does not require a prior DeepSeek pass or Sonnet justification
-- when Opus is agent-proposed, explicit user approval is still required
-- Opus output remains evidence; it does not replace the authority of the owning workflow stage
+- enhanced paid cross-model adversary: Claude Sonnet, only when the user requests it or approves an agent-proposed material second opinion
+- premium adversary: Claude Opus, only when the user requests it or approves a rare critical escalation
+- a user-directed Sonnet or Opus request authorizes that specific invocation directly; it does not require a prior DeepSeek pass or GPT-5.6 Sol justification
+- agent-proposed Sonnet or Opus invocations always require explicit user approval
+- Claude output remains evidence; it does not replace the authority of the owning workflow stage
+
+## User-Controlled Model Selection
+
+For product-design workflows, the user may choose the model directly in the command prompt.
+
+Examples:
+
+```text
+/grill I want to build a finance platform for Indian retail investors. Grill me. Use GPT.
+
+/grill I want to build a finance platform for Indian retail investors. Grill me. Use Claude.
+
+/architect Design the approved platform. Use Terra.
+
+/spec Create the next implementation specifications. Use Haiku.
+```
+
+Recognized aliases:
+
+| User phrase | Model |
+| --- | --- |
+| `use GPT`, `use OpenAI`, `use Sol` | GPT-5.6 Sol |
+| `use Terra` | GPT-5.6 Terra |
+| `use Luna` | GPT-5.6 Luna |
+| `use Claude`, `use Sonnet` | Claude Sonnet 5 |
+| `use Haiku` | Claude Haiku 4.5 |
+| `use Opus` | Claude Opus 5 |
+| `use DeepSeek` | DeepSeek V4.1 Flash |
+
+The explicit model choice applies to that workflow invocation/session and does not alter the command's role, authority, permissions, acceptance criteria, or safety rules.
+
+If the requested connected-provider model is unavailable, the workflow must fail clearly and ask the user to select an available model. Never silently substitute.
+
+The default routing below applies only when the user does not specify a model.
+
+## Model Routing
+
+The default model strategy is:
+
+- GPT-5.6 Sol: `/grill`, `/prd`, `/architect`, `/spec`, adversarial reconciliation, and senior code review
+- GPT-5.6 Luna: `/project-init` and lightweight Ask/documentation work
+- DeepSeek Flash: `/implement`, `/verify`, `/fix`, `/diagnose`, default adversarial review, and pre-review
+- Claude Haiku 4.5: optional lower-cost Claude-family choice for bounded work that fits its context window
+- Claude Sonnet: optional paid independent model-family second opinion
+- Claude Opus: optional premium rare-critical adversarial or architecture escalation
+- GPT-5.6 Terra: optional balanced OpenAI choice between Sol and Luna when available in the connected OpenAI catalog
+
+Claude is no longer a mandatory lifecycle dependency.
+
+User-directed requests for Sonnet or Opus are valid model choices for a specific review. Agent-proposed Claude usage requires explicit approval.
+
+## Context Quality
+
+Do not starve a reasoning stage of relevant context to reduce cost.
+
+Optimize for relevant context density:
+
+- include every approved artifact and constraint materially needed for the current decision
+- exclude unrelated history, stale artifacts, duplicate content, and unrelated source files
+- prefer authoritative handoffs and targeted repository reads
+- never omit a material requirement, invariant, ADR, or failure constraint because it increases token usage
+- use large context when the decision genuinely requires it
 
 ## Specification Discipline
 
@@ -482,7 +544,7 @@ Review occurs only after `/verify` returns `DONE`.
 The review pipeline is:
 
 1. DeepSeek pre-review
-2. Claude Sonnet senior review only if pre-review returns `READY_FOR_SENIOR_REVIEW`
+2. GPT-5.6 Sol senior review only if pre-review returns `READY_FOR_SENIOR_REVIEW`
 
 Possible pre-review outcomes:
 
@@ -629,7 +691,7 @@ DeepSeek pre-review
   ├─ CHANGES_REQUIRED → /fix → /verify → /review
   └─ READY_FOR_SENIOR_REVIEW
                    ↓
-            Sonnet senior review
+            GPT-5.6 Sol senior review
   ├─ REQUEST CHANGES → /fix → /verify → /review
   └─ APPROVE
        ↓
