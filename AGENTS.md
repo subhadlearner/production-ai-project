@@ -508,14 +508,17 @@ Do not overwrite prior reports.
 For evidence to establish `Delivery Gate: CLEAR`, the report must record:
 
 - current branch
-- verified implementation HEAD commit SHA
-- repository state at verification start
+- verification base HEAD SHA
+- normalized implementation-state manifest
+- implementation-state fingerprint
 
-A reusable review gate requires repository state `STABLE`: the branch/HEAD remain unchanged throughout verification and there are no uncommitted or untracked non-evidence changes before or after the configured checks run.
+The manifest captures all non-evidence tracked differences plus untracked, non-ignored paths relative to the verification base HEAD as repository-relative path + content hash, or `DELETED`.
 
-Workflow evidence paths such as `docs/verification/**`, `docs/reviews/**`, and `docs/diagnostics/**` may be written after verification without invalidating implementation freshness.
+Workflow evidence paths such as `docs/verification/**`, `docs/reviews/**`, and `docs/diagnostics/**` are excluded from the fingerprint.
 
-If checks pass while source/test/spec/configuration or other non-evidence changes are uncommitted—or if a verification command creates such changes—the factual verification result may still be `DONE`, but the delivery gate is `BLOCKED` until the intended changes are committed and `/verify` is rerun.
+Normal uncommitted implementation work is allowed. The delivery gate may be `CLEAR` when the implementation-state fingerprint remains unchanged throughout verification.
+
+If a verification command changes non-evidence contents, the factual verification result may still be `DONE`, but the delivery gate is `BLOCKED` until `/verify` is rerun against the new state.
 
 `DONE` means:
 
