@@ -711,6 +711,7 @@ It also prepares:
 - repository conventions
 - skill coverage, including `security-verification` when applicable
 - project waiver policy/non-waivable categories when defined
+- standard workflow artifact directories, including `docs/verification/`, `docs/verification/waivers/`, `docs/reviews/`, and `docs/diagnostics/`
 - initialization guidance
 
 ### Skill Coverage Matrix
@@ -1057,7 +1058,7 @@ WAIVER-SPEC-014-001.md
 A waiver must identify:
 
 - exact failed verification report
-- exact commit when available
+- exact verified implementation commit
 - exact failed checks
 - classification
 - human justification
@@ -1101,7 +1102,7 @@ It does **not** mean the failed check passed.
 
 Waived checks continue to execute on future verification runs.
 
-A waiver becomes invalid when it expires, the source commit changes, the failure set changes materially, or project policy no longer permits it.
+A waiver becomes invalid when it expires, the current branch/HEAD no longer matches the verified implementation revision, non-evidence implementation/spec/configuration changes exist, the failure set changes materially, or project policy no longer permits it.
 
 A new `/verify` run does not silently inherit an old waiver.
 
@@ -2160,8 +2161,8 @@ I know what is wrong but not why → /diagnose
                                              ▼
                                        ┌─────────────────┐
                                        │ /review         │
-                 └────────┬────────┘
-                          ▼
+                                       └────────┬────────┘
+                                                ▼
               ┌────────────────────────┐
               │ DeepSeek pre-reviewer  │
               └──────────┬─────────────┘
