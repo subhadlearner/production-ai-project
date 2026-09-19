@@ -618,6 +618,23 @@ A waiver never turns a failed check into a pass.
 
 ## Review Workflow
 
+Every non-trivial `/review` run must persist a new history-preserving report under:
+
+`docs/reviews/`
+
+Pre-review findings are persisted even when the pre-review result is `CHANGES_REQUIRED` and senior review is therefore skipped. In that case the report records:
+
+- pre-review: `CHANGES_REQUIRED`
+- senior review: `NOT_RUN`
+- final AI review decision: `CHANGES_REQUIRED`
+- next action: `/fix → /verify → /review`
+
+When senior review runs, the same review-run artifact contains both the complete pre-review and senior-review evidence.
+
+Completed review reports are never overwritten. Each new review run creates a new numbered artifact.
+
+`/fix` should use the latest applicable persisted review report rather than relying on chat history.
+
 Review occurs when the effective delivery gate is:
 
 - `CLEAR` from a `DONE` verification report, or
