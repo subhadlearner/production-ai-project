@@ -110,7 +110,7 @@ It synchronizes the approved architecture into:
 - `.kilo/rules/`
 - `.kilo/skills/`
 
-It also ensures the standard workflow artifact directories exist, including `docs/verification/`, `docs/verification/waivers/`, `docs/reviews/`, `docs/diagnostics/`, and `docs/workflow/`, with the Stable-v1 evidence contract synchronized into `docs/workflow/IMPLEMENTATION-STATE-EVIDENCE-V1.md`.
+It also ensures the standard workflow artifact directories exist, including `docs/verification/`, `docs/verification/waivers/`, `docs/verification/smoke/`, `docs/reviews/`, `docs/diagnostics/`, and `docs/workflow/`, with the Stable-v1 evidence contract synchronized into `docs/workflow/IMPLEMENTATION-STATE-EVIDENCE-V1.md`.
 
 If required technology decisions are missing, `/project-init` must stop instead of guessing.
 
@@ -133,6 +133,7 @@ If required technology decisions are missing, `/project-init` must stop instead 
     ├── specs/
     ├── reviews/
     └── verification/
+        ├── smoke/
         └── waivers/
 ```
 
@@ -203,6 +204,12 @@ Do not install large or unrelated skill collections.
 Every non-trivial `/verify` run creates a new history-preserving report under:
 
 `docs/verification/`
+
+Restartable `/smoke` orchestration state is stored separately under:
+
+`docs/verification/smoke/<run-id>.md`
+
+The smoke record tracks profile, fixture, release/config SHA, current stage/scenario, progress, model/cost ledger, blockers, and next action so `/smoke STATUS` and `/smoke RESUME` do not depend on chat history.
 
 Reusable verification evidence follows `docs/workflow/IMPLEMENTATION-STATE-EVIDENCE-V1.md`. The canonical implementation-state manifest is the authoritative identity of all non-evidence tracked differences plus untracked, non-ignored paths relative to the verification base HEAD, including effective Git mode/type; the fingerprint is only a compact checksum/identifier.
 
