@@ -509,8 +509,10 @@ For evidence to establish `Delivery Gate: CLEAR`, the report must record:
 
 - current branch
 - verification base HEAD SHA
-- normalized implementation-state manifest
+- evidence contract version: `implementation-state-evidence-v1`
+- canonical implementation-state manifest
 - implementation-state fingerprint
+- freshness outcome: `MATCH`, `MISMATCH`, or `UNRECONSTRUCTABLE`
 
 The manifest is canonicalized exactly under Contract v1 from all non-evidence tracked differences plus untracked, non-ignored paths relative to the verification base HEAD.
 
