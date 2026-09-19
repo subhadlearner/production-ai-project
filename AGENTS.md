@@ -70,7 +70,7 @@ For parallel implementation:
 - use a separate Git worktree for each concurrently mutating implementation
 - do not allow multiple implementation agents to modify the same files concurrently
 
-`/fix`, `/verify`, and `/review` must operate on the existing implementation branch.
+`/fix`, `/verify`, `/waive`, and `/review` must operate on the existing implementation branch.
 
 They must not create a new branch for the same specification.
 
