@@ -1865,14 +1865,33 @@ I want a premium fresh-context challenge focused on trust boundaries, confused-d
 
 The phrase `Use Opus directly for this review` is sufficient authorization for that specific premium adversarial invocation.
 
-### 19.11 `/review`
+### 19.11 `/waive`
 
-Run only after `/verify` returns `DONE`.
+Use only when the human owner explicitly accepts a bounded residual risk from a specific `NOT_DONE` verification report.
+
+```text
+/waive
+
+I want to accept the flaky-test failure recorded in VERIFY-SPEC-012-002.md.
+
+Classification: TEST_FLAKINESS
+Justification: DIAG-004 established that the failure comes from the test synchronization mechanism, not from an observed product defect.
+Residual risk: a real timing regression could be harder to distinguish while this test remains flaky.
+Compensating evidence: focused integration behavior and all other acceptance criteria pass.
+Remediation: GH-248
+Expiry: 14 days.
+```
+
+The agent may structure the waiver, but the human owner must supply or explicitly approve the justification and residual-risk acceptance.
+
+### 19.12 `/review`
+
+Run after the effective delivery gate is `CLEAR` or `CLEAR_WITH_EXCEPTION`.
 
 ```text
 /review
 
-Review the implementation of SPEC-012 using the latest successful verification result.
+Review the implementation of SPEC-012 using the latest persisted verification evidence and any active waiver.
 
 Run the normal cost-controlled review pipeline:
 DeepSeek pre-review first, then GPT-5.6 Sol senior review only if the pre-review is clean.
