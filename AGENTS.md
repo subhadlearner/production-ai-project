@@ -485,7 +485,7 @@ Do not classify a missing required test as `NOT_APPLICABLE` merely because it ha
 
 ## Verification Workflow
 
-`/verify` provides deterministic evidence about the implementation and binds reusable verification evidence to a stable implementation revision.
+`/verify` provides deterministic evidence about the implementation and binds reusable verification evidence to an exact implementation-state fingerprint. The implementation may be uncommitted.
 
 Verification must use the actual project commands defined in this file or repository configuration.
 
@@ -614,7 +614,7 @@ RUN_VERIFY
    ↓
 /verify
    │
-   ├── DONE + stable revision
+   ├── DONE + unchanged verified fingerprint
    │     ↓
    │   Delivery Gate: CLEAR
    │     ↓
@@ -664,15 +664,15 @@ Review occurs when the effective delivery gate is:
 - `CLEAR` from a fresh `DONE` verification report, or
 - `CLEAR_WITH_EXCEPTION` from a valid human-authorized waiver tied to the exact fresh `NOT_DONE` verification report/commit/failure set.
 
-Before invoking reviewers, `/review` must prove that the applicable verification report matches:
+Before invoking reviewers, `/review` must prove that:
 
-- the requested specification/change
-- current branch
-- current HEAD commit SHA
-- a `STABLE` verified repository state
-- no current non-evidence working-tree changes
+- the requested specification/change matches
+- current branch matches
+- the current effective non-evidence repository contents reconstruct to the exact persisted implementation-state fingerprint
 
-If any of these changed, verification evidence is stale and `/review` must stop and require a new `/verify`.
+A later commit of the same verified contents does not invalidate verification by itself. A matching HEAD does not make evidence fresh if working-tree contents differ.
+
+If the reconstructed fingerprint differs, verification evidence is stale and `/review` must stop and require a new `/verify`.
 
 For `CLEAR_WITH_EXCEPTION`, reviewers must receive both the failed verification evidence and the waiver. They may still reject the change when the accepted risk is unsafe, stale, out of policy, or misclassified.
 
@@ -729,7 +729,7 @@ A specification is complete only when:
 
 - implementation is complete
 - required applicable tests exist
-- persisted verification evidence exists and is fresh for the current specification/change, branch, HEAD revision, and non-evidence working-tree state
+- persisted verification evidence exists and its implementation-state fingerprint exactly matches the current effective non-evidence repository contents
 - delivery gate is `CLEAR`, or an explicitly accepted `CLEAR_WITH_EXCEPTION` is permitted by project policy
 - `/review` reaches `APPROVE`
 - CI passes
@@ -859,7 +859,7 @@ PRD_READY
   └─ RUN_VERIFY
             ↓
          /verify
-  ├─ DONE + stable revision → CLEAR ─────────────────────────────┐
+  ├─ DONE + unchanged verified fingerprint → CLEAR ──────────────┐
   │                                                              │
   └─ NOT_DONE                                                    │
        ├─ understood defect → /fix → /verify                     │
