@@ -317,6 +317,18 @@ Do not reduce relevant context merely to save tokens. Remove irrelevant context,
 
 For framework smoke testing, do not use metered Claude models unless explicitly requested. Use GPT-5.6 Sol/Luna plus DeepSeek to validate behavior while preserving Claude capability for real work.
 
+## Review Evidence
+
+Every non-trivial `/review` run creates a new history-preserving report under:
+
+`docs/reviews/`
+
+A review report contains the verification input, active waiver when applicable, complete pre-review findings, senior-review findings when invoked, final AI review decision, and next action.
+
+If pre-review returns `CHANGES_REQUIRED`, the report is still written and records `Senior Review: NOT_RUN`.
+
+Subsequent review runs create new numbered artifacts instead of overwriting previous reports. These reports are the durable handoff into `/fix`.
+
 ## Review Model
 
 The review pipeline is cost-controlled and consumes the latest persisted verification report. If the delivery gate is `CLEAR_WITH_EXCEPTION`, it also receives the exact active waiver. Reviewers may still reject an unsafe, stale, misclassified, or out-of-policy waiver.
