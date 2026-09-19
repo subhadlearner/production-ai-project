@@ -27,6 +27,8 @@ For difficult defects use `/diagnose → /fix → /verify`.
 
 For high-risk decisions use `/adversarial-check` or the automatic risk-triggered checks inside architecture/specification work.
 
+For framework validation use the global `/smoke` command. `/smoke` is not part of the normal product lifecycle; it orchestrates disposable FAST/FULL validation runs while preserving the underlying workflow authorities.
+
 The complete flow is:
 
 ```text
@@ -210,6 +212,15 @@ Restartable `/smoke` orchestration state is stored separately under:
 `docs/verification/smoke/<run-id>.md`
 
 The smoke record tracks profile, fixture, release/config SHA, current stage/scenario, progress, model/cost ledger, blockers, and next action so `/smoke STATUS` and `/smoke RESUME` do not depend on chat history.
+
+Typical global command usage:
+
+```text
+/smoke FAST DEFAULT
+/smoke FULL DEFAULT
+/smoke STATUS <run-id>
+/smoke RESUME <run-id>
+```
 
 Reusable verification evidence follows `docs/workflow/IMPLEMENTATION-STATE-EVIDENCE-V1.md`. The canonical implementation-state manifest is the authoritative identity of all non-evidence tracked differences plus untracked, non-ignored paths relative to the verification base HEAD, including effective Git mode/type; the fingerprint is only a compact checksum/identifier.
 
