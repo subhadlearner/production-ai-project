@@ -6,7 +6,7 @@ Briefly describe the project.
 
 This repository is a reusable production-grade AI-assisted software-engineering template.
 
-The project-specific technology stack is selected during `/architect` and synchronized into the repository during `/project-init`.
+The project-specific technology stack is selected during `/architect` and synchronized into the repository during `/project-init`. Project initialization also synchronizes the Stable-v1 evidence contract into `docs/workflow/IMPLEMENTATION-STATE-EVIDENCE-V1.md`.
 
 ## Development Workflow
 
@@ -110,7 +110,7 @@ It synchronizes the approved architecture into:
 - `.kilo/rules/`
 - `.kilo/skills/`
 
-It also ensures the standard workflow artifact directories exist, including `docs/verification/`, `docs/verification/waivers/`, `docs/reviews/`, and `docs/diagnostics/`.
+It also ensures the standard workflow artifact directories exist, including `docs/verification/`, `docs/verification/waivers/`, `docs/reviews/`, `docs/diagnostics/`, and `docs/workflow/`, with the Stable-v1 evidence contract synchronized into `docs/workflow/IMPLEMENTATION-STATE-EVIDENCE-V1.md`.
 
 If required technology decisions are missing, `/project-init` must stop instead of guessing.
 
@@ -204,7 +204,7 @@ Every non-trivial `/verify` run creates a new history-preserving report under:
 
 `docs/verification/`
 
-Reusable verification evidence follows `docs/workflow/IMPLEMENTATION-STATE-EVIDENCE-V1.md`. The canonical implementation-state manifest is the authoritative identity of all non-evidence tracked differences plus untracked, non-ignored paths relative to the verification base HEAD; the fingerprint is only a compact checksum/identifier.
+Reusable verification evidence follows `docs/workflow/IMPLEMENTATION-STATE-EVIDENCE-V1.md`. The canonical implementation-state manifest is the authoritative identity of all non-evidence tracked differences plus untracked, non-ignored paths relative to the verification base HEAD, including effective Git mode/type; the fingerprint is only a compact checksum/identifier.
 
 This intentionally supports review-before-commit. Uncommitted implementation work may establish `Delivery Gate: CLEAR` only when the pre/post canonical manifests are an exact `MATCH`. `MISMATCH` or `UNRECONSTRUCTABLE` fails closed.
 

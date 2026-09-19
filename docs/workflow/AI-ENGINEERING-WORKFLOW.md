@@ -711,7 +711,8 @@ It also prepares:
 - repository conventions
 - skill coverage, including `security-verification` when applicable
 - project waiver policy/non-waivable categories when defined
-- standard workflow artifact directories, including `docs/verification/`, `docs/verification/waivers/`, `docs/reviews/`, and `docs/diagnostics/`
+- standard workflow artifact directories, including `docs/verification/`, `docs/verification/waivers/`, `docs/reviews/`, `docs/diagnostics/`, and `docs/workflow/`
+- a verbatim synchronized `docs/workflow/IMPLEMENTATION-STATE-EVIDENCE-V1.md`; inability to synchronize it exactly is a `PROJECT_INIT_BLOCKED` condition
 - initialization guidance
 
 ### Skill Coverage Matrix
@@ -920,7 +921,7 @@ The manifest is built from the union of:
 - tracked paths whose current contents differ from the verification base HEAD
 - untracked, non-ignored paths
 
-For each path, apply the exact Contract v1 canonical serialization: repository-relative `/` path, TAB, Git blob/content hash or literal `DELETED`, LF; UTF-8 without BOM; entries sorted by UTF-8 path bytes; no duplicates or blank records.
+For each path, apply the exact Contract v1 canonical serialization: repository-relative `/` path, TAB, effective Git mode/type, TAB, Git blob/content hash or literal `DELETED`, LF; UTF-8 without BOM; entries sorted by UTF-8 path bytes; no duplicates or blank records. Mode/type changes such as `100644 → 100755`, file ↔ symlink, or gitlink changes are identity-bearing.
 
 The normative workflow evidence exclusion set is exactly:
 
@@ -1714,7 +1715,7 @@ Use after `ARCHITECTURE_READY`.
 
 Initialize this repository from the latest approved architecture and ADRs.
 
-Populate the project technology baseline, build/test/quality commands, rules, and Skill Coverage Matrix.
+Populate the project technology baseline, build/test/quality commands, rules, Skill Coverage Matrix, standard workflow directories, and the verbatim Stable-v1 evidence contract under `docs/workflow/IMPLEMENTATION-STATE-EVIDENCE-V1.md`.
 
 Do not invent or replace architecture decisions.
 Do not implement product functionality.
