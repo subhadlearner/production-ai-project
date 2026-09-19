@@ -195,7 +195,7 @@ If the requested model is unavailable from the connected provider, the workflow 
 ### Defaults when no model is specified
 
 - GPT-5.6 Sol: `/grill`, `/prd`, `/architect`, `/spec`
-- GPT-5.6 Luna: `/project-init`
+- GPT-5.6 Luna: `/project-init` and `/smoke` orchestration
 - DeepSeek Flash: `/implement`, `/verify`, `/fix`, `/diagnose`, default adversary, pre-review
 - GPT-5.6 Sol: senior review
 
@@ -686,6 +686,29 @@ For high-quality reasoning:
 The optimization target is **relevant context density**, not minimum tokens.
 
 ---
+
+## Framework smoke validation
+
+`/smoke` is an auxiliary global command for validating the workflow framework itself against disposable fixtures.
+
+It is not a product lifecycle authority and does not replace `/grill`, `/prd`, `/architect`, `/project-init`, `/spec`, `/implement`, `/verify`, or `/review`.
+
+Smoke runs persist restartable state under:
+
+```text
+docs/verification/smoke/<run-id>.md
+```
+
+Typical usage:
+
+```text
+/smoke FAST DEFAULT
+/smoke FULL DEFAULT
+/smoke STATUS <run-id>
+/smoke RESUME <run-id>
+```
+
+The global smoke policy owns fixture/profile selection. The project repository owns only the generated run-state evidence and normal lifecycle artifacts.
 
 ## 7. `/project-init` — Operationalize the Architecture
 
