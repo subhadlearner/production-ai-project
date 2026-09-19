@@ -665,7 +665,7 @@ Completed review reports are never overwritten. Each new review run creates a ne
 Review occurs when the effective delivery gate is:
 
 - `CLEAR` from a fresh `DONE` verification report, or
-- `CLEAR_WITH_EXCEPTION` from a valid human-authorized waiver tied to the exact fresh `NOT_DONE` verification report/commit/failure set.
+- `CLEAR_WITH_EXCEPTION` from a valid human-authorized waiver tied to the exact fresh `NOT_DONE` verification report/implementation-state fingerprint/failure set.
 
 Before invoking reviewers, `/review` must prove that:
 
@@ -774,7 +774,7 @@ Use the global `security-verification` skill when security verification is appli
 Waivers must:
 
 - be explicitly human-authorized
-- reference the exact failed verification report and commit
+- reference the exact failed verification report and implementation-state fingerprint
 - identify exact failed checks
 - state classification, justification, residual risk, compensating controls, remediation, and expiry
 - remain separate from verification evidence
