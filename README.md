@@ -270,6 +270,8 @@ For `/architect` and `/spec`, a plain model choice selects the workflow authorin
 
 For `/adversarial-check`, the model phrase selects the adversary directly.
 
+After adversarial review, architecture/specification reconciliation is a focused delta pass. It should update only affected sections and must not rerun the whole authoring workflow.
+
 If no model is named, the default routing below applies.
 
 The model choice changes the intelligence provider, not the workflow's permissions or authority.
@@ -289,6 +291,8 @@ The default workflow uses:
 GPT-5.6 Sol/Luna use the connected ChatGPT subscription in Kilo; Claude Sonnet/Opus consume the separate Anthropic API budget.
 
 Do not reduce relevant context merely to save tokens. Remove irrelevant context, not required context.
+
+For framework smoke testing, do not use metered Claude models unless explicitly requested. Use GPT-5.6 Sol/Luna plus DeepSeek to validate behavior while preserving Claude capability for real work.
 
 ## Review Model
 
