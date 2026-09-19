@@ -110,7 +110,7 @@ It synchronizes the approved architecture into:
 - `.kilo/rules/`
 - `.kilo/skills/`
 
-It also ensures the standard workflow artifact directories exist, including `docs/verification/`, `docs/verification/waivers/`, `docs/reviews/`, and `docs/diagnostics/`.
+It also ensures the standard workflow artifact directories exist, including `docs/verification/`, `docs/verification/waivers/`, `docs/reviews/`, `docs/diagnostics/`, and `docs/workflow/`, with the Stable-v1 evidence contract synchronized into `docs/workflow/IMPLEMENTATION-STATE-EVIDENCE-V1.md`.
 
 If required technology decisions are missing, `/project-init` must stop instead of guessing.
 
