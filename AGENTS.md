@@ -199,6 +199,18 @@ It is responsible for synchronizing the approved project configuration into:
 - `.kilo/rules/`
 - `.kilo/skills/`
 
+It must also ensure the standard workflow artifact directories exist, including:
+
+- `docs/discovery/`
+- `docs/prd/`
+- `docs/architecture/`
+- `docs/adr/`
+- `docs/specs/`
+- `docs/diagnostics/`
+- `docs/verification/`
+- `docs/verification/waivers/`
+- `docs/reviews/`
+
 `/project-init` must not implement application functionality.
 
 It must stop with:
@@ -717,7 +729,7 @@ A specification is complete only when:
 
 - implementation is complete
 - required applicable tests exist
-- persisted verification evidence exists
+- persisted verification evidence exists and is fresh for the current specification/change, branch, HEAD revision, and non-evidence working-tree state
 - delivery gate is `CLEAR`, or an explicitly accepted `CLEAR_WITH_EXCEPTION` is permitted by project policy
 - `/review` reaches `APPROVE`
 - CI passes
