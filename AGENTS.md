@@ -473,7 +473,7 @@ Do not classify a missing required test as `NOT_APPLICABLE` merely because it ha
 
 ## Verification Workflow
 
-`/verify` provides deterministic evidence about the implementation.
+`/verify` provides deterministic evidence about the implementation and binds reusable verification evidence to a stable implementation revision.
 
 Verification must use the actual project commands defined in this file or repository configuration.
 
@@ -492,6 +492,18 @@ Every non-trivial verification run must persist a new report under:
 `docs/verification/`
 
 Do not overwrite prior reports.
+
+For evidence to establish `Delivery Gate: CLEAR`, the report must record:
+
+- current branch
+- verified implementation HEAD commit SHA
+- repository state at verification start
+
+A reusable review gate requires repository state `STABLE`: no uncommitted or untracked non-evidence changes.
+
+Workflow evidence paths such as `docs/verification/**`, `docs/reviews/**`, and `docs/diagnostics/**` may be written after verification without invalidating implementation freshness.
+
+If checks pass while source/test/spec/configuration or other non-evidence changes are uncommitted, the factual verification result may still be `DONE`, but the delivery gate is `BLOCKED` until those changes are committed and `/verify` is rerun.
 
 `DONE` means:
 
@@ -633,12 +645,22 @@ When senior review runs, the same review-run artifact contains both the complete
 
 Completed review reports are never overwritten. Each new review run creates a new numbered artifact.
 
-`/fix` should use the latest applicable persisted review report rather than relying on chat history.
+`/fix` should use the latest applicable persisted review, verification, or diagnosis artifact for the requested specification/change and branch rather than the newest artifact globally or chat history. If the implementation revision has advanced since the evidence was created, re-confirm each blocker against current code before editing.
 
 Review occurs when the effective delivery gate is:
 
-- `CLEAR` from a `DONE` verification report, or
-- `CLEAR_WITH_EXCEPTION` from a valid human-authorized waiver tied to the exact `NOT_DONE` verification report/commit/failure set.
+- `CLEAR` from a fresh `DONE` verification report, or
+- `CLEAR_WITH_EXCEPTION` from a valid human-authorized waiver tied to the exact fresh `NOT_DONE` verification report/commit/failure set.
+
+Before invoking reviewers, `/review` must prove that the applicable verification report matches:
+
+- the requested specification/change
+- current branch
+- current HEAD commit SHA
+- a `STABLE` verified repository state
+- no current non-evidence working-tree changes
+
+If any of these changed, verification evidence is stale and `/review` must stop and require a new `/verify`.
 
 For `CLEAR_WITH_EXCEPTION`, reviewers must receive both the failed verification evidence and the waiver. They may still reject the change when the accepted risk is unsafe, stale, out of policy, or misclassified.
 
@@ -825,24 +847,31 @@ PRD_READY
   └─ RUN_VERIFY
             ↓
          /verify
-  ├─ NOT_DONE → /fix → /verify
-  └─ DONE
-       ↓
-     /review
-       ↓
-DeepSeek pre-review
-  ├─ CHANGES_REQUIRED → /fix → /verify → /review
+  ├─ DONE + stable revision → CLEAR ─────────────────────────────┐
+  │                                                              │
+  └─ NOT_DONE                                                    │
+       ├─ understood defect → /fix → /verify                     │
+       ├─ unclear/intermittent → /diagnose → /fix → /verify      │
+       └─ explicit bounded human risk acceptance → /waive        │
+                                                   ↓              │
+                                        CLEAR_WITH_EXCEPTION      │
+                                                   └──────┬───────┘
+                                                          ↓
+                                                       /review
+                                                          ↓
+                                                DeepSeek pre-review
+  ├─ CHANGES_REQUIRED → persisted REVIEW → /fix → /verify → /review
   └─ READY_FOR_SENIOR_REVIEW
                    ↓
             GPT-5.6 Sol senior review
-  ├─ REQUEST CHANGES → /fix → /verify → /review
-  └─ APPROVE
-       ↓
-       CI
-       ↓
-   PR / merge
-       ↓
-human-approved production deployment
+  ├─ REQUEST CHANGES → persisted REVIEW → /fix → /verify → /review
+  └─ APPROVE → persisted REVIEW
+                   ↓
+                  CI
+                   ↓
+              PR / merge
+                   ↓
+       human-approved production deployment
 ```
 
 Auxiliary paths:
@@ -850,6 +879,7 @@ Auxiliary paths:
 ```text
 hard bug → /diagnose → /fix → /verify
 high-risk decision → /adversarial-check → owning stage continues or resolves findings
+stale verification evidence → /verify
 ```
 
 Blocked stages must state the owner, required action, and exact next command rather than leaving the operator to infer the recovery path.
