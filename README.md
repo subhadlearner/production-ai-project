@@ -19,8 +19,9 @@ The standard lifecycle is:
 5. `/spec`
 6. `/implement`
 7. `/verify`
-8. `/waive` only when the human owner explicitly accepts a bounded failed verification risk
-9. `/review`
+8. `/review`
+
+`/waive` is an exception path used only when `/verify` is `NOT_DONE` and the human owner explicitly accepts a bounded residual risk.
 
 For difficult defects use `/diagnose → /fix → /verify`.
 
@@ -108,6 +109,8 @@ It synchronizes the approved architecture into:
 - `README.md`
 - `.kilo/rules/`
 - `.kilo/skills/`
+
+It also ensures the standard workflow artifact directories exist, including `docs/verification/`, `docs/verification/waivers/`, `docs/reviews/`, and `docs/diagnostics/`.
 
 If required technology decisions are missing, `/project-init` must stop instead of guessing.
 
@@ -244,15 +247,18 @@ RUN_VERIFY
    ↓
 /verify
    │
-   ├── DONE ─────────────→ /review
+   ├── DONE + stable revision → CLEAR → /review
    │
    └── NOT_DONE
-          ↓
-        /fix
-          ↓
-       RUN_VERIFY
-          ↓
-        /verify
+          ├── understood defect → /fix → /verify
+          ├── unclear/intermittent → /diagnose → /fix → /verify
+          └── explicit bounded human risk acceptance
+                    ↓
+                  /waive
+                    ↓
+          CLEAR_WITH_EXCEPTION
+                    ↓
+                 /review
 ```
 
 `/fix` is also used when review finds blocking issues:
@@ -337,7 +343,7 @@ Subsequent review runs create new numbered artifacts instead of overwriting prev
 
 ## Review Model
 
-The review pipeline is cost-controlled and consumes the latest persisted verification report. If the delivery gate is `CLEAR_WITH_EXCEPTION`, it also receives the exact active waiver. Reviewers may still reject an unsafe, stale, misclassified, or out-of-policy waiver.
+The review pipeline is cost-controlled and consumes the latest **applicable, fresh** persisted verification report for the requested specification/change and branch. If the delivery gate is `CLEAR_WITH_EXCEPTION`, it also receives the exact active waiver. Reviewers may still reject an unsafe, stale, misclassified, or out-of-policy waiver.
 
 The review pipeline is:
 
