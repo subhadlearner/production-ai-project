@@ -172,6 +172,8 @@ The authority chain is:
 
 `/adversarial-check` challenges high-risk artifacts but does not replace the authority of `/prd`, `/architect`, `/spec`, `/verify`, or `/review`.
 
+`/smoke` is an auxiliary framework-validation command. It does not become a product lifecycle authority. It may orchestrate FAST/FULL validation against disposable fixtures while preserving the normal lifecycle commands, model routing, evidence rules, and blocked-state ownership.
+
 `/project-init`, `/spec`, `/implement`, `/verify`, `/fix`, and `/review` must not independently replace the approved technology stack.
 
 If a required technology decision is missing, return to architecture rather than guessing.
@@ -388,7 +390,7 @@ The default routing below applies only when the user does not specify a model.
 The default model strategy is:
 
 - GPT-5.6 Sol: `/grill`, `/prd`, `/architect`, `/spec`, adversarial reconciliation, and senior code review
-- GPT-5.6 Luna: `/project-init` and lightweight Ask/documentation work
+- GPT-5.6 Luna: `/project-init`, `/smoke` orchestration, and lightweight Ask/documentation work
 - DeepSeek Flash: `/implement`, `/verify`, `/fix`, `/diagnose`, default adversarial review, and pre-review
 - Claude Haiku 4.5: optional lower-cost Claude-family choice for bounded work that fits its context window
 - Claude Sonnet: optional paid independent model-family second opinion
