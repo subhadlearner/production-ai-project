@@ -1219,6 +1219,36 @@ DIAGNOSIS_READY
 
 ## 13. `/review` — AI Review Pipeline
 
+Every non-trivial review run persists a new history-preserving report under:
+
+```text
+docs/reviews/
+```
+
+Use stable sequence names such as:
+
+```text
+REVIEW-SPEC-012-001.md
+REVIEW-SPEC-012-002.md
+```
+
+A review report records:
+
+- review ID
+- specification/change
+- branch and commit when available
+- persisted verification report used
+- effective delivery gate
+- active waiver when applicable
+- complete pre-review result/findings
+- complete senior-review result/findings when invoked
+- blocking and non-blocking findings
+- residual risks
+- final AI review decision
+- next action
+
+Completed prior review reports are not overwritten.
+
 Users normally run only:
 
 ```text
@@ -1256,7 +1286,15 @@ or:
 CHANGES_REQUIRED
 ```
 
-If `CHANGES_REQUIRED`:
+If `CHANGES_REQUIRED`, persist the review artifact first with:
+
+```text
+Pre-review: CHANGES_REQUIRED
+Senior review: NOT_RUN
+Final AI review decision: CHANGES_REQUIRED
+```
+
+Then:
 
 ```text
 /review
@@ -1291,6 +1329,8 @@ or:
 ```text
 REQUEST CHANGES
 ```
+
+When senior review runs, append its complete evidence to the same review-run artifact before returning the final decision.
 
 If changes are requested:
 
@@ -1891,6 +1931,8 @@ The agent may structure the waiver, but the human owner must supply or explicitl
 
 Run after the effective delivery gate is `CLEAR` or `CLEAR_WITH_EXCEPTION`.
 
+The command persists the review evidence under `docs/reviews/` even when pre-review blocks senior review.
+
 ```text
 /review
 
@@ -2174,6 +2216,7 @@ Before calling work complete:
 - persisted verification evidence exists
 - delivery gate is `CLEAR`, or an explicitly accepted `CLEAR_WITH_EXCEPTION` is permitted by project policy
 - any active waiver is current, scoped, human-authorized, and visible to review
+- a persisted review report exists under `docs/reviews/`
 - `/review` returned `APPROVE`
 - CI passed
 - PR/merge followed normal process
