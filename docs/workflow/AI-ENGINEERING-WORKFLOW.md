@@ -11,12 +11,12 @@ It describes:
 - when to diagnose before fixing
 - when to run adversarial review
 - how GPT-5.6 Sol, GPT-5.6 Luna, DeepSeek, Claude Sonnet, and Claude Opus are routed
-- how verification, review, CI, and human approval fit together
+- how persisted verification evidence, security verification, waivers, review, CI, and human approval fit together
 - how global and project-specific skills are consumed
 
 The governing rule is simple:
 
-> Product intent is clarified before architecture, architecture is locked before implementation, implementation is verified deterministically before review, and high-risk decisions receive adversarial challenge before they are trusted.
+> Product intent is clarified before architecture, architecture is locked before implementation, verification evidence remains factual and persistent, accepted residual risk is recorded separately as a human waiver, and high-risk decisions receive adversarial challenge before they are trusted.
 
 ---
 
@@ -39,6 +39,8 @@ The default project lifecycle is:
    ↓
 /verify
    ↓
+CLEAR or CLEAR_WITH_EXCEPTION
+   ↓
 /review
    ↓
 CI
@@ -59,7 +61,7 @@ All other stages are part of the normal delivery path for a new project or major
 Use this shorthand:
 
 ```text
-Discover → Define → Design → Initialize → Specify → Build → Verify → Review → Merge
+Discover → Define → Design → Initialize → Specify → Build → Verify → Govern Risk → Review → Merge
 ```
 
 Side paths are used only when needed:
@@ -69,8 +71,9 @@ unclear idea          → /grill
 hard-to-diagnose bug  → /diagnose
 ordinary blocker      → /fix
 high-risk decision    → /adversarial-check
-verification failure  → /fix → /verify
-review failure        → /fix → /verify → /review
+verification failure  → /fix or /diagnose → /verify
+accepted residual risk → /waive → CLEAR_WITH_EXCEPTION → /review
+review failure         → /fix → /verify → /review
 ```
 
 ---
@@ -208,7 +211,8 @@ If the requested model is unavailable from the connected provider, the workflow 
 | Project initialization | `/project-init` | GPT-5.6 Luna | Skill Coverage Matrix | Operationalize architecture into repo rules/configuration |
 | Specification | `/spec` | GPT-5.6 Sol planner | DeepSeek default adversary; Sonnet/Opus optional; TDD applicability | Create bounded implementation specs |
 | Implementation | `/implement` | DeepSeek builder | `tdd` and technology skills | Implement one approved specification |
-| Verification | `/verify` | DeepSeek verification path | repository-defined checks | Produce deterministic DONE / NOT_DONE evidence |
+| Verification | `/verify` | DeepSeek verification path | repository-defined checks + `security-verification` | Persist deterministic DONE / NOT_DONE evidence and security coverage |
+| Human risk waiver | `/waive` | GPT-5.6 Luna | persisted verification + project waiver policy | Record explicit bounded human risk acceptance without changing verification truth |
 | Normal repair | `/fix` | DeepSeek debugger | `diagnosing-bugs` when needed | Apply the smallest safe correction |
 | Hard diagnosis | `/diagnose` | DeepSeek debugger | `diagnosing-bugs` | Reproduce, isolate, and establish root cause |
 | Pre-review | internal to `/review` | DeepSeek pre-reviewer | review rules | Cost-efficient production review |
@@ -703,8 +707,10 @@ It synchronizes the approved baseline into:
 It also prepares:
 
 - build/test command definitions
+- approved executable security verification commands where applicable
 - repository conventions
-- skill coverage
+- skill coverage, including `security-verification` when applicable
+- project waiver policy/non-waivable categories when defined
 - initialization guidance
 
 ### Skill Coverage Matrix
@@ -881,7 +887,7 @@ RUN_VERIFY
 
 ---
 
-## 10. `/verify` — Deterministic Completion Gate
+## 10. `/verify` — Persistent Verification Gate
 
 ### Model
 
@@ -889,27 +895,19 @@ DeepSeek verification path.
 
 ### Purpose
 
-`/verify` is the authoritative deterministic completion gate.
+`/verify` is the authoritative factual verification gate.
 
-It uses the actual project-defined checks, such as:
+Every non-trivial run persists a new history-preserving report under:
 
-- build
-- unit tests
-- integration tests
-- E2E tests
-- contract tests
-- negative/boundary tests
-- lint
-- format verification
-- type/static analysis
-- compiler/analyzers
-- dependency/security scan
-- secret scan
-- IaC validation
+```text
+docs/verification/
+```
 
-### Statuses
+A historical verification report is never overwritten merely to change its verdict.
 
-Only:
+### Verification result
+
+The factual result remains exactly:
 
 ```text
 DONE
@@ -921,19 +919,180 @@ or:
 NOT_DONE
 ```
 
-### If NOT_DONE
+`DONE` requires:
 
-Use:
+- all required applicable checks pass
+- every required acceptance criterion has deterministic evidence
+- required security verification has no blocking failure or required uncovered gap
+- no unresolved blocker remains
+
+`NOT_DONE` means at least one required condition failed.
+
+A waiver does not convert `NOT_DONE` to `DONE`.
+
+### Security verification
+
+When security is applicable, `/verify` loads the global `security-verification` skill and executes only architecture/project-approved security commands.
+
+Coverage may include:
+
+- dependency vulnerability scanning
+- software supply-chain/package-source checks
+- secret scanning
+- SAST/static security analysis
+- IaC security validation
+- container/image scanning
+- authentication/authorization tests
+- feature-specific security tests
+
+Use **OWASP Top 10:2025** as the baseline application-security risk taxonomy.
+
+For each applicable category record:
+
+- `PASS`
+- `FAIL`
+- `NOT_APPLICABLE`
+- `NOT_COVERED`
+
+`NOT_COVERED` is never equivalent to `PASS`.
+
+For web/API systems, use OWASP ASVS-style controls as a deeper verification reference where appropriate.
+
+Do not claim broad "OWASP compliant", "secure", or regulatory compliance merely because automated checks passed.
+
+### Persistent verification artifact
+
+Use a stable sequence such as:
 
 ```text
-/verify
-   ↓
-NOT_DONE
-   ↓
-/fix
-   ↓
-/verify
+docs/verification/VERIFY-SPEC-014-001.md
+docs/verification/VERIFY-SPEC-014-002.md
 ```
+
+Each report records:
+
+- verification ID
+- specification/change
+- branch and commit when available
+- commands executed
+- exit status
+- concise evidence
+- security coverage
+- acceptance-criteria evidence
+- blockers
+- factual verification result
+- delivery gate
+- next action
+
+For a fresh `DONE` run:
+
+```text
+Verification Result: DONE
+Delivery Gate: CLEAR
+```
+
+For a `NOT_DONE` run:
+
+```text
+Verification Result: NOT_DONE
+Delivery Gate: BLOCKED
+```
+
+### If NOT_DONE
+
+Choose the truthful next path:
+
+```text
+understood repairable defect
+→ /fix → /verify
+
+intermittent / flaky / unclear failure
+→ /diagnose → /fix → /verify
+
+human owner deliberately accepts bounded residual risk
+→ /waive
+```
+
+Never delete or weaken a failing required test merely because it is flaky.
+
+---
+
+## 10.1 `/waive` — Human Risk Acceptance
+
+### Model
+
+GPT-5.6 Luna.
+
+### Purpose
+
+`/waive` records a human owner's deliberate, time-bounded acceptance of a specific failed verification risk.
+
+It does not alter the original verification report.
+
+Waivers are stored under:
+
+```text
+docs/verification/waivers/
+```
+
+Example:
+
+```text
+WAIVER-SPEC-014-001.md
+```
+
+### Required waiver evidence
+
+A waiver must identify:
+
+- exact failed verification report
+- exact commit when available
+- exact failed checks
+- classification
+- human justification
+- residual risk
+- compensating evidence/controls
+- remediation action or tracking issue
+- expiry
+- scope
+
+Supported classifications include:
+
+- `TEST_FLAKINESS`
+- `ENVIRONMENT_FAILURE`
+- `NON_CRITICAL_QUALITY_GATE`
+- `KNOWN_PRODUCT_DEFECT`
+- `SECURITY_EXCEPTION`
+- `DATA_INTEGRITY_EXCEPTION`
+- `COMPLIANCE_EXCEPTION`
+
+Project policy may mark categories non-waivable.
+
+The agent must not invent the human owner's justification.
+
+### Waiver semantics
+
+The source truth remains:
+
+```text
+Verification Result: NOT_DONE
+```
+
+A valid waiver may establish:
+
+```text
+Delivery Gate: CLEAR_WITH_EXCEPTION
+```
+
+This means review may proceed with the exception visible.
+
+It does **not** mean the failed check passed.
+
+Waived checks continue to execute on future verification runs.
+
+A waiver becomes invalid when it expires, the source commit changes, the failure set changes materially, or project policy no longer permits it.
+
+A new `/verify` run does not silently inherit an old waiver.
 
 ---
 
@@ -1060,11 +1219,52 @@ DIAGNOSIS_READY
 
 ## 13. `/review` — AI Review Pipeline
 
+Every non-trivial review run persists a new history-preserving report under:
+
+```text
+docs/reviews/
+```
+
+Use stable sequence names such as:
+
+```text
+REVIEW-SPEC-012-001.md
+REVIEW-SPEC-012-002.md
+```
+
+A review report records:
+
+- review ID
+- specification/change
+- branch and commit when available
+- persisted verification report used
+- effective delivery gate
+- active waiver when applicable
+- complete pre-review result/findings
+- complete senior-review result/findings when invoked
+- blocking and non-blocking findings
+- residual risks
+- final AI review decision
+- next action
+
+Completed prior review reports are not overwritten.
+
 Users normally run only:
 
 ```text
 /review
 ```
+
+Review consumes the latest persisted verification report.
+
+It proceeds only when the effective delivery gate is:
+
+- `CLEAR`, or
+- `CLEAR_WITH_EXCEPTION`
+
+For `CLEAR_WITH_EXCEPTION`, the review receives both the original `NOT_DONE` verification evidence and the active waiver verbatim.
+
+Reviewers may still reject a change when the waiver is unsafe, stale, misclassified, contradicted by evidence, or out of project policy.
 
 Do not manually run the internal reviewers unless diagnosing the workflow itself.
 
@@ -1086,7 +1286,15 @@ or:
 CHANGES_REQUIRED
 ```
 
-If `CHANGES_REQUIRED`:
+If `CHANGES_REQUIRED`, persist the review artifact first with:
+
+```text
+Pre-review: CHANGES_REQUIRED
+Senior review: NOT_RUN
+Final AI review decision: CHANGES_REQUIRED
+```
+
+Then:
 
 ```text
 /review
@@ -1122,6 +1330,8 @@ or:
 REQUEST CHANGES
 ```
 
+When senior review runs, append its complete evidence to the same review-run artifact before returning the final decision.
+
 If changes are requested:
 
 ```text
@@ -1143,7 +1353,7 @@ AI approval is not the final deterministic gate.
 Required order:
 
 ```text
-/verify → DONE
+/verify → DONE → CLEAR
        ↓
 /review → APPROVE
        ↓
@@ -1189,7 +1399,7 @@ For parallel mutating specifications:
 - one worktree per concurrently mutating spec
 - avoid multiple agents modifying the same files concurrently
 
-`/fix`, `/verify`, and `/review` stay on the existing implementation branch.
+`/fix`, `/verify`, `/waive`, and `/review` stay on the existing implementation branch.
 
 ---
 
@@ -1217,6 +1427,9 @@ Examples:
 /architect or /adversarial-check
   → adversarial-check
   → relevant cloud/database/security skill
+
+/verify
+  → security-verification when security is applicable
 ```
 
 Installed reusable global skills should not need manual user invocation during ordinary workflow execution.
@@ -1241,6 +1454,7 @@ Typical reusable global skills include:
 - `tdd`
 - `diagnosing-bugs`
 - `adversarial-check`
+- `security-verification`
 - `dotnet-production`
 - `python-production`
 - `postgresql-production`
@@ -1291,6 +1505,9 @@ hard defect with unknown root cause
 
 known implementation defect
 → /fix
+
+accepted bounded verification risk
+→ /waive
 ```
 
 Do not silently solve an upstream authority problem in a downstream stage.
@@ -1691,14 +1908,35 @@ I want a premium fresh-context challenge focused on trust boundaries, confused-d
 
 The phrase `Use Opus directly for this review` is sufficient authorization for that specific premium adversarial invocation.
 
-### 19.11 `/review`
+### 19.11 `/waive`
 
-Run only after `/verify` returns `DONE`.
+Use only when the human owner explicitly accepts a bounded residual risk from a specific `NOT_DONE` verification report.
+
+```text
+/waive
+
+I want to accept the flaky-test failure recorded in VERIFY-SPEC-012-002.md.
+
+Classification: TEST_FLAKINESS
+Justification: DIAG-004 established that the failure comes from the test synchronization mechanism, not from an observed product defect.
+Residual risk: a real timing regression could be harder to distinguish while this test remains flaky.
+Compensating evidence: focused integration behavior and all other acceptance criteria pass.
+Remediation: GH-248
+Expiry: 14 days.
+```
+
+The agent may structure the waiver, but the human owner must supply or explicitly approve the justification and residual-risk acceptance.
+
+### 19.12 `/review`
+
+Run after the effective delivery gate is `CLEAR` or `CLEAR_WITH_EXCEPTION`.
+
+The command persists the review evidence under `docs/reviews/` even when pre-review blocks senior review.
 
 ```text
 /review
 
-Review the implementation of SPEC-012 using the latest successful verification result.
+Review the implementation of SPEC-012 using the latest persisted verification evidence and any active waiver.
 
 Run the normal cost-controlled review pipeline:
 DeepSeek pre-review first, then GPT-5.6 Sol senior review only if the pre-review is clean.
@@ -1763,10 +2001,11 @@ I know what is wrong but not why → /diagnose
 | Architecture is ready and I need implementable work units | `/spec` |
 | I have an approved spec and need code | `/implement` |
 | Implementation looks complete and needs deterministic proof | `/verify` |
+| Verification is NOT_DONE but I explicitly accept a bounded residual risk | `/waive` |
 | Verification/review found an obvious/local issue | `/fix` |
 | A bug is hard, intermittent, concurrent, or unexplained | `/diagnose` |
 | A decision is unusually risky and needs a fresh challenge | `/adversarial-check` |
-| Verification is DONE and code needs AI production review | `/review` |
+| Delivery gate is CLEAR or CLEAR_WITH_EXCEPTION and code needs AI production review | `/review` |
 
 ---
 
@@ -1974,7 +2213,10 @@ Before calling work complete:
 - TDD was used where applicable
 - high-risk decisions received adversarial review where required
 - difficult bugs were diagnosed before speculative fixing
-- `/verify` returned `DONE`
+- persisted verification evidence exists
+- delivery gate is `CLEAR`, or an explicitly accepted `CLEAR_WITH_EXCEPTION` is permitted by project policy
+- any active waiver is current, scoped, human-authorized, and visible to review
+- a persisted review report exists under `docs/reviews/`
 - `/review` returned `APPROVE`
 - CI passed
 - PR/merge followed normal process

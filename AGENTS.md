@@ -26,6 +26,11 @@ Implementation agents must not invent or silently replace the technology stack.
 - Linting:
 - Formatting:
 - Type Checking / Static Analysis:
+- Dependency Vulnerability Scanning:
+- Secret Scanning:
+- SAST / Static Security Analysis:
+- IaC Security Scanning:
+- Container / Image Scanning:
 - Security / Dependency Scanning:
 
 If a technology decision required for implementation is missing or materially ambiguous, implementation must stop rather than guess.
@@ -65,7 +70,7 @@ For parallel implementation:
 - use a separate Git worktree for each concurrently mutating implementation
 - do not allow multiple implementation agents to modify the same files concurrently
 
-`/fix`, `/verify`, and `/review` must operate on the existing implementation branch.
+`/fix`, `/verify`, `/waive`, and `/review` must operate on the existing implementation branch.
 
 They must not create a new branch for the same specification.
 
@@ -119,9 +124,21 @@ Define the formatting verification command here when configured.
 
 Define the applicable command here.
 
-### Security / Dependency Checks
+### Security Verification Commands
 
-Define configured security, dependency, or vulnerability checks here.
+Define only architecture-approved executable commands here.
+
+Where applicable include:
+
+- dependency vulnerability scanning
+- secret scanning
+- SAST/static security analysis
+- IaC security scanning
+- container/image scanning
+- framework-specific security checks
+- feature-specific security tests
+
+Do not invent tools during `/verify`.
 
 ### Infrastructure Validation
 
@@ -462,7 +479,7 @@ Verification must use the actual project commands defined in this file or reposi
 
 Do not invent verification tools merely because they are common for the technology stack.
 
-The only valid final verification statuses are:
+The factual verification result is always:
 
 `DONE`
 
@@ -470,17 +487,36 @@ or
 
 `NOT_DONE`
 
+Every non-trivial verification run must persist a new report under:
+
+`docs/verification/`
+
+Do not overwrite prior reports.
+
 `DONE` means:
 
 - all required applicable verification checks passed
 - every required acceptance criterion has deterministic passing evidence
+- required security verification has no blocking failure or required uncovered gap
 - no verification blocker remains
 
 `NOT_DONE` means one or more required conditions are not satisfied.
 
-If `/verify` returns `NOT_DONE`, do not proceed to `/review`.
+A historical `NOT_DONE` result must never be manually rewritten to `DONE`.
 
-Use `/fix`.
+If the failure should be repaired, use `/fix`.
+
+If root cause is unclear/intermittent/flaky, use `/diagnose`.
+
+If the human owner deliberately accepts the residual risk, use `/waive`. A valid waiver is stored under:
+
+`docs/verification/waivers/`
+
+and may establish:
+
+`Delivery Gate: CLEAR_WITH_EXCEPTION`
+
+The original verification remains `NOT_DONE`, and the failed check continues to run.
 
 ## Diagnostic Workflow
 
@@ -545,9 +581,7 @@ Do not silently redesign the system.
 
 Avoid repeated speculative repair attempts.
 
-## Verification and Repair Loop
-
-The required implementation loop is:
+## Verification, Repair, Diagnosis, and Waiver Loop
 
 ```text
 /implement
@@ -556,20 +590,57 @@ RUN_VERIFY
    ↓
 /verify
    │
-   ├── DONE ──────────────→ /review
+   ├── DONE
+   │     ↓
+   │   Delivery Gate: CLEAR
+   │     ↓
+   │   /review
    │
    └── NOT_DONE
           ↓
-        /fix
-          ↓
-       RUN_VERIFY
-          ↓
+      investigate
+       /      \
+    /fix    /diagnose
+      \       /
+       \     /
         /verify
+          │
+          └── human explicitly accepts bounded residual risk
+                    ↓
+                  /waive
+                    ↓
+          Delivery Gate: CLEAR_WITH_EXCEPTION
+                    ↓
+                 /review
 ```
+
+A waiver never turns a failed check into a pass.
 
 ## Review Workflow
 
-Review occurs only after `/verify` returns `DONE`.
+Every non-trivial `/review` run must persist a new history-preserving report under:
+
+`docs/reviews/`
+
+Pre-review findings are persisted even when the pre-review result is `CHANGES_REQUIRED` and senior review is therefore skipped. In that case the report records:
+
+- pre-review: `CHANGES_REQUIRED`
+- senior review: `NOT_RUN`
+- final AI review decision: `CHANGES_REQUIRED`
+- next action: `/fix → /verify → /review`
+
+When senior review runs, the same review-run artifact contains both the complete pre-review and senior-review evidence.
+
+Completed review reports are never overwritten. Each new review run creates a new numbered artifact.
+
+`/fix` should use the latest applicable persisted review report rather than relying on chat history.
+
+Review occurs when the effective delivery gate is:
+
+- `CLEAR` from a `DONE` verification report, or
+- `CLEAR_WITH_EXCEPTION` from a valid human-authorized waiver tied to the exact `NOT_DONE` verification report/commit/failure set.
+
+For `CLEAR_WITH_EXCEPTION`, reviewers must receive both the failed verification evidence and the waiver. They may still reject the change when the accepted risk is unsafe, stale, out of policy, or misclassified.
 
 The review pipeline is:
 
@@ -624,14 +695,56 @@ A specification is complete only when:
 
 - implementation is complete
 - required applicable tests exist
-- `/verify` returns `DONE`
+- persisted verification evidence exists
+- delivery gate is `CLEAR`, or an explicitly accepted `CLEAR_WITH_EXCEPTION` is permitted by project policy
 - `/review` reaches `APPROVE`
 - CI passes
 - merge occurs through the normal PR process
 
+A waiver is an explicit residual-risk acceptance, not a statement that verification passed.
+
 Production deployment remains a separate human-approved action.
 
 ## Security
+
+Use OWASP Top 10:2025 as the baseline application-security risk taxonomy. For web/API systems, use OWASP ASVS-style controls as a deeper technical verification reference where appropriate.
+
+Where applicable, verification should cover:
+
+- dependency/software supply-chain vulnerabilities
+- secret exposure
+- SAST/static security analysis
+- IaC/container security
+- authentication and authorization
+- input validation and injection
+- XSS, CSRF, SSRF
+- unsafe deserialization/parser behavior
+- path/file handling
+- cryptography/key management
+- sensitive-data storage/transport/logging
+- abuse/resource exhaustion
+- security logging/alerting
+- exceptional-condition handling
+- cloud/IAM trust and least privilege
+- security-sensitive data integrity/concurrency/replay
+
+Do not claim broad "OWASP compliant", "secure", or regulatory compliance solely from automated checks.
+
+Use the global `security-verification` skill when security verification is applicable.
+
+### Verification Waiver Policy
+
+Waivers must:
+
+- be explicitly human-authorized
+- reference the exact failed verification report and commit
+- identify exact failed checks
+- state classification, justification, residual risk, compensating controls, remediation, and expiry
+- remain separate from verification evidence
+- expire and never silently carry forward to a new verification run
+- keep the waived checks executing
+
+Project policy may mark categories such as security, data-integrity, or compliance failures non-waivable.
 
 Never:
 

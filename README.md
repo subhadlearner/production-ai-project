@@ -19,7 +19,8 @@ The standard lifecycle is:
 5. `/spec`
 6. `/implement`
 7. `/verify`
-8. `/review`
+8. `/waive` only when the human owner explicitly accepts a bounded failed verification risk
+9. `/review`
 
 For difficult defects use `/diagnose → /fix → /verify`.
 
@@ -53,8 +54,11 @@ PRD_READY
   └─ RUN_VERIFY
             ↓
          /verify
-  ├─ NOT_DONE → /fix → /verify
-  └─ DONE
+  ├─ NOT_DONE → /fix or /diagnose → /verify
+  ├─ NOT_DONE + explicit human risk acceptance → /waive
+  │                                              ↓
+  │                                   CLEAR_WITH_EXCEPTION
+  └─ DONE → CLEAR
        ↓
      /review
        ↓
@@ -126,6 +130,7 @@ If required technology decisions are missing, `/project-init` must stop instead 
     ├── specs/
     ├── reviews/
     └── verification/
+        └── waivers/
 ```
 
 Project-local concurrent worktrees may use `.kilo/worktrees/`, which is intentionally ignored by Git.
@@ -155,7 +160,7 @@ For parallel implementation:
 - use separate Git worktrees
 - avoid concurrent mutation of the same files
 
-`/fix`, `/verify`, and `/review` continue on the existing implementation branch.
+`/fix`, `/verify`, `/waive`, and `/review` continue on the existing implementation branch.
 
 They do not create another branch for the same specification.
 
@@ -190,11 +195,27 @@ Third-party skills must be reviewed and explicitly approved before installation.
 
 Do not install large or unrelated skill collections.
 
-## Verification and Repair
+## Verification Evidence, Security, Repair, and Waivers
 
-Implementation is not ready for review until `/verify` returns:
+Every non-trivial `/verify` run creates a new history-preserving report under:
 
-`DONE`
+`docs/verification/`
+
+Verification remains factual:
+
+- `DONE` means all required applicable checks and acceptance criteria passed
+- `NOT_DONE` means one or more required conditions failed
+- historical `NOT_DONE` reports are never rewritten to `DONE`
+
+Security verification uses project-approved executable checks and the global `security-verification` skill. OWASP Top 10:2025 is the baseline application-security risk taxonomy; OWASP ASVS-style controls are used as a deeper web/API verification reference where appropriate.
+
+If a failed verification should be repaired, use `/fix`. If root cause is unclear, intermittent, or flaky, use `/diagnose`.
+
+When the human owner deliberately accepts a bounded residual risk, use `/waive`. The waiver is persisted separately under:
+
+`docs/verification/waivers/`
+
+A valid waiver may establish `Delivery Gate: CLEAR_WITH_EXCEPTION` so review can proceed with both the failed evidence and accepted risk visible. The failed verification remains `NOT_DONE`, and the failed check continues to execute.
 
 Normal repair flow:
 
@@ -242,9 +263,11 @@ CHANGES_REQUIRED or REQUEST CHANGES
              /review
 ```
 
-`/verify` is the authoritative deterministic completion gate.
+`/verify` is the authoritative factual verification gate.
 
-It must validate all required applicable checks and provide deterministic evidence for the specification's acceptance criteria.
+It must validate all required applicable checks, persist evidence, evaluate configured security gates, and provide deterministic evidence for the specification's acceptance criteria.
+
+Review may proceed only when the effective delivery gate is `CLEAR` or `CLEAR_WITH_EXCEPTION`.
 
 ## Choosing the Model Per Workflow
 
@@ -294,9 +317,23 @@ Do not reduce relevant context merely to save tokens. Remove irrelevant context,
 
 For framework smoke testing, do not use metered Claude models unless explicitly requested. Use GPT-5.6 Sol/Luna plus DeepSeek to validate behavior while preserving Claude capability for real work.
 
+## Review Evidence
+
+Every non-trivial `/review` run creates a new history-preserving report under:
+
+`docs/reviews/`
+
+A review report contains the verification input, active waiver when applicable, complete pre-review findings, senior-review findings when invoked, final AI review decision, and next action.
+
+If pre-review returns `CHANGES_REQUIRED`, the report is still written and records `Senior Review: NOT_RUN`.
+
+Subsequent review runs create new numbered artifacts instead of overwriting previous reports. These reports are the durable handoff into `/fix`.
+
 ## Review Model
 
-The review pipeline is cost-controlled:
+The review pipeline is cost-controlled and consumes the latest persisted verification report. If the delivery gate is `CLEAR_WITH_EXCEPTION`, it also receives the exact active waiver. Reviewers may still reject an unsafe, stale, misclassified, or out-of-policy waiver.
+
+The review pipeline is:
 
 1. DeepSeek performs the first-pass pre-review.
 2. GPT-5.6 Sol runs only when pre-review returns `READY_FOR_SENIOR_REVIEW`.
