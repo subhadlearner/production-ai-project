@@ -211,7 +211,8 @@ If the requested model is unavailable from the connected provider, the workflow 
 | Project initialization | `/project-init` | GPT-5.6 Luna | Skill Coverage Matrix | Operationalize architecture into repo rules/configuration |
 | Specification | `/spec` | GPT-5.6 Sol planner | DeepSeek default adversary; Sonnet/Opus optional; TDD applicability | Create bounded implementation specs |
 | Implementation | `/implement` | DeepSeek builder | `tdd` and technology skills | Implement one approved specification |
-| Verification | `/verify` | DeepSeek verification path | repository-defined checks | Produce deterministic DONE / NOT_DONE evidence |
+| Verification | `/verify` | DeepSeek verification path | repository-defined checks + `security-verification` | Persist deterministic DONE / NOT_DONE evidence and security coverage |
+| Human risk waiver | `/waive` | GPT-5.6 Luna | persisted verification + project waiver policy | Record explicit bounded human risk acceptance without changing verification truth |
 | Normal repair | `/fix` | DeepSeek debugger | `diagnosing-bugs` when needed | Apply the smallest safe correction |
 | Hard diagnosis | `/diagnose` | DeepSeek debugger | `diagnosing-bugs` | Reproduce, isolate, and establish root cause |
 | Pre-review | internal to `/review` | DeepSeek pre-reviewer | review rules | Cost-efficient production review |
@@ -706,8 +707,10 @@ It synchronizes the approved baseline into:
 It also prepares:
 
 - build/test command definitions
+- approved executable security verification commands where applicable
 - repository conventions
-- skill coverage
+- skill coverage, including `security-verification` when applicable
+- project waiver policy/non-waivable categories when defined
 - initialization guidance
 
 ### Skill Coverage Matrix
