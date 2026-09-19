@@ -160,7 +160,7 @@ For parallel implementation:
 - use separate Git worktrees
 - avoid concurrent mutation of the same files
 
-`/fix`, `/verify`, and `/review` continue on the existing implementation branch.
+`/fix`, `/verify`, `/waive`, and `/review` continue on the existing implementation branch.
 
 They do not create another branch for the same specification.
 
