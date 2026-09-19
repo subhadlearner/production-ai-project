@@ -906,7 +906,7 @@ docs/verification/
 
 A historical verification report is never overwritten merely to change its verdict.
 
-For a verification result to establish a reusable review gate, it must be bound to an exact implementation-state fingerprint.
+For a verification result to establish a reusable review gate, it must satisfy `IMPLEMENTATION-STATE-EVIDENCE-V1.md`. The canonical implementation-state manifest is authoritative; the fingerprint is only its compact checksum/identifier.
 
 Record:
 
@@ -920,11 +920,17 @@ The manifest is built from the union of:
 - tracked paths whose current contents differ from the verification base HEAD
 - untracked, non-ignored paths
 
-For each path, excluding workflow evidence paths, record repository-relative path plus current Git blob/content hash, or `DELETED` when absent. Sort deterministically before computing/storing the fingerprint.
+For each path, apply the exact Contract v1 canonical serialization: repository-relative `/` path, TAB, Git blob/content hash or literal `DELETED`, LF; UTF-8 without BOM; entries sorted by UTF-8 path bytes; no duplicates or blank records.
 
-Workflow evidence paths such as `docs/verification/**`, `docs/reviews/**`, and `docs/diagnostics/**` are excluded from the fingerprint.
+The normative workflow evidence exclusion set is exactly:
 
-This deliberately supports review-before-commit. Uncommitted implementation work is valid when the effective-content fingerprint is unchanged before and after verification.
+- `docs/verification/**`
+- `docs/reviews/**`
+- `docs/diagnostics/**`
+
+No stage may add another exclusion independently.
+
+This deliberately supports review-before-commit. Uncommitted implementation work is valid when pre/post canonical manifests are an exact `MATCH`. `MISMATCH` or `UNRECONSTRUCTABLE` fails closed.
 
 If a verification command changes non-evidence contents, the factual result may still be `DONE`, but the delivery gate is `BLOCKED`. Rerun `/verify` against the new state.
 
@@ -1116,7 +1122,7 @@ It does **not** mean the failed check passed.
 
 Waived checks continue to execute on future verification runs.
 
-A waiver becomes invalid when it expires, the current effective non-evidence repository contents no longer reconstruct to the referenced implementation-state fingerprint, the failure set changes materially, or project policy no longer permits it. A later commit of the same verified contents does not invalidate the waiver by itself.
+A waiver becomes invalid when it expires, Contract v1 freshness is `MISMATCH` or `UNRECONSTRUCTABLE`, the failure set changes materially, or project policy no longer permits it. The waiver is logically bound to the immutable verification report, its authoritative canonical manifest/fingerprint, and exact accepted failure set. A later commit of the same verified contents does not invalidate the waiver by itself.
 
 A new `/verify` run does not silently inherit an old waiver.
 
@@ -1283,15 +1289,18 @@ Users normally run only:
 
 Review consumes the latest **applicable** persisted verification report for the requested specification/change and branch.
 
-Before invoking reviewers it must validate freshness:
+Before invoking reviewers it must validate freshness under Contract v1:
 
 - verification scope matches the requested specification/change
 - verified branch matches current branch
-- current effective non-evidence repository contents, reconstructed relative to the verification base HEAD, produce the exact persisted implementation-state fingerprint
+- required evidence fields are complete and well-formed
+- verification base HEAD is available
+- the current canonical manifest can be reconstructed
+- freshness is `MATCH` by byte-for-byte canonical-manifest equality
 
-A later commit of the same verified contents is allowed. A matching HEAD is not sufficient when working-tree contents changed.
+A later commit of the same verified contents is allowed. A matching HEAD or fingerprint alone is not sufficient.
 
-If the fingerprint differs, `/review` stops and requires a fresh `/verify`.
+`MISMATCH` or `UNRECONSTRUCTABLE` stops `/review` and requires a fresh `/verify`.
 
 It proceeds only when the effective delivery gate is:
 
@@ -2257,7 +2266,7 @@ Before calling work complete:
 - TDD was used where applicable
 - high-risk decisions received adversarial review where required
 - difficult bugs were diagnosed before speculative fixing
-- persisted verification evidence exists and its implementation-state fingerprint matches the current effective non-evidence repository contents
+- persisted verification evidence exists and Contract v1 freshness is `MATCH`; fingerprint equality alone is insufficient
 - delivery gate is `CLEAR`, or an explicitly accepted `CLEAR_WITH_EXCEPTION` is permitted by project policy
 - any active waiver is current, scoped, human-authorized, and visible to review
 - a persisted review report exists under `docs/reviews/`
