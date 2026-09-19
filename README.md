@@ -201,6 +201,8 @@ Every non-trivial `/verify` run creates a new history-preserving report under:
 
 `docs/verification/`
 
+Reusable verification evidence is tied to the requested specification/change, branch, and verified implementation HEAD commit. To establish `Delivery Gate: CLEAR`, the implementation must be at a stable revision with no uncommitted/untracked non-evidence changes. If implementation/spec/configuration changes are uncommitted, checks may still report factual `DONE`, but review remains blocked until those changes are committed and `/verify` is rerun.
+
 Verification remains factual:
 
 - `DONE` means all required applicable checks and acceptance criteria passed
@@ -216,6 +218,8 @@ When the human owner deliberately accepts a bounded residual risk, use `/waive`.
 `docs/verification/waivers/`
 
 A valid waiver may establish `Delivery Gate: CLEAR_WITH_EXCEPTION` so review can proceed with both the failed evidence and accepted risk visible. The failed verification remains `NOT_DONE`, and the failed check continues to execute.
+
+`/review` also validates evidence freshness before invoking reviewers. If the current branch, HEAD, requested scope, or non-evidence working-tree state differs from the verified revision, review stops and requires a fresh `/verify`.
 
 Normal repair flow:
 
@@ -328,6 +332,8 @@ A review report contains the verification input, active waiver when applicable, 
 If pre-review returns `CHANGES_REQUIRED`, the report is still written and records `Senior Review: NOT_RUN`.
 
 Subsequent review runs create new numbered artifacts instead of overwriting previous reports. These reports are the durable handoff into `/fix`.
+
+`/fix` selects the latest **applicable** review/verification/diagnosis evidence for the requested specification/change and branch, not merely the newest artifact in the repository.
 
 ## Review Model
 
