@@ -59,7 +59,7 @@ PRD_READY
   ├─ NOT_DONE + explicit human risk acceptance → /waive
   │                                              ↓
   │                                   CLEAR_WITH_EXCEPTION
-  └─ DONE + stable revision → CLEAR
+  └─ DONE + unchanged verified fingerprint → CLEAR
        ↓
      /review
        ↓
@@ -204,7 +204,11 @@ Every non-trivial `/verify` run creates a new history-preserving report under:
 
 `docs/verification/`
 
-Reusable verification evidence is tied to the requested specification/change, branch, and verified implementation HEAD commit. To establish `Delivery Gate: CLEAR`, the branch/HEAD must remain unchanged throughout verification and there must be no uncommitted/untracked non-evidence changes before or after the configured checks run. If implementation/spec/configuration changes are uncommitted—or a verification command creates such changes—checks may still report factual `DONE`, but review remains blocked until those changes are committed and `/verify` is rerun.
+Reusable verification evidence is tied to the requested specification/change, branch, verification base HEAD, and an implementation-state fingerprint. The fingerprint is built from a normalized manifest of all non-evidence tracked differences plus untracked, non-ignored paths relative to the base HEAD.
+
+This intentionally supports review-before-commit. Uncommitted implementation work may still establish `Delivery Gate: CLEAR` when the fingerprint remains unchanged throughout verification.
+
+If a verification command changes non-evidence contents, checks may still report factual `DONE`, but the delivery gate remains `BLOCKED` until `/verify` is rerun against the new state.
 
 Verification remains factual:
 
@@ -222,7 +226,7 @@ When the human owner deliberately accepts a bounded residual risk, use `/waive`.
 
 A valid waiver may establish `Delivery Gate: CLEAR_WITH_EXCEPTION` so review can proceed with both the failed evidence and accepted risk visible. The failed verification remains `NOT_DONE`, and the failed check continues to execute.
 
-`/review` also validates evidence freshness before invoking reviewers. If the current branch, HEAD, requested scope, or non-evidence working-tree state differs from the verified revision, review stops and requires a fresh `/verify`.
+`/review` also validates evidence freshness before invoking reviewers by reconstructing the current effective non-evidence contents from the verification report's base HEAD and comparing the resulting fingerprint. A later commit of identical verified contents is allowed; any content mismatch requires a fresh `/verify`.
 
 Normal repair flow:
 
@@ -247,7 +251,7 @@ RUN_VERIFY
    ↓
 /verify
    │
-   ├── DONE + stable revision → CLEAR → /review
+   ├── DONE + unchanged verified fingerprint → CLEAR → /review
    │
    └── NOT_DONE
           ├── understood defect → /fix → /verify
