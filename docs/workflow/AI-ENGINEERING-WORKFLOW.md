@@ -570,7 +570,7 @@ Reserve Opus for:
 
 - user-directed premium review
 - rare critical agent-proposed adversarial escalation
-- rare architecture-authority escalation when Sol cannot responsibly settle the decision
+- rare architecture-authority escalation when the owning architecture workflow cannot responsibly settle the decision
 
 Agent-proposed Opus always requires explicit user approval.
 
@@ -583,7 +583,7 @@ High-risk artifact
       ↓
 DeepSeek adversary
       ↓
-GPT-5.6 Sol reconciliation
+owning workflow-model reconciliation
       ↓
 continue / revise / block
 ```
@@ -595,7 +595,7 @@ User: "Use Sonnet for this adversarial review"
       ↓
 Claude Sonnet adversary
       ↓
-GPT-5.6 Sol reconciliation
+owning workflow-model reconciliation
 ```
 
 The user's explicit request authorizes that specific paid Sonnet invocation.
@@ -608,7 +608,7 @@ User: "Use Opus for this adversarial review"
       ↓
 Claude Opus adversary
       ↓
-GPT-5.6 Sol reconciliation
+owning workflow-model reconciliation
 ```
 
 The user's explicit request authorizes that specific premium Opus invocation.
@@ -616,7 +616,7 @@ No DeepSeek or Sonnet pass is required unless the user asks for them.
 
 ### Agent-proposed Sonnet escalation
 
-After a DeepSeek pass, the Sol planner may propose Sonnet when material uncertainty remains and an independent model-family perspective would materially improve confidence.
+After a DeepSeek pass, the owning workflow model may propose Sonnet when material uncertainty remains and an independent model-family perspective would materially improve confidence.
 
 Before invoking it:
 
