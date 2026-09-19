@@ -117,6 +117,18 @@ If the workflow needs another round of user input, the child returns the questio
 
 The selected model remains in effect for that workflow session unless the user changes it explicitly.
 
+### Planning-worker execution modes
+
+Delegated planning work must use one explicit execution mode:
+
+- `AUTHOR` — create the requested discovery/PRD/architecture/specification for the first time
+- `CONTINUE` — resume after the user answers a question batch
+- `RECONCILE_ONLY` — reconcile adversarial findings against an existing architecture/specification without restarting the authoring workflow
+
+If no mode is supplied, the planning worker must stop rather than guess.
+
+`RECONCILE_ONLY` is intentionally narrow. It should normally read only the challenged artifact, affected ADR/spec files, the findings, and the relevant contract/invariants.
+
 ### Workflow model and adversary model are independent
 
 For `/architect` and `/spec`, distinguish two separate choices:
@@ -454,6 +466,20 @@ The adversary receives only:
 
 It does not receive the author's preferred conclusion or reasoning narrative.
 
+After findings return, reconciliation must use `MODE: RECONCILE_ONLY` when delegation back to the model-selectable planning worker is required.
+
+Expected reconciliation:
+
+```text
+read challenged section / affected ADR
+→ inspect findings
+→ classify findings
+→ make targeted edits if needed
+→ optionally recheck only if the challenged decision materially changed
+```
+
+It must not restart the full architecture workflow, reread the entire repository, or regenerate unaffected ADRs.
+
 ---
 
 ## 6. Model Strategy and Adversarial Escalation
@@ -544,7 +570,7 @@ Reserve Opus for:
 
 - user-directed premium review
 - rare critical agent-proposed adversarial escalation
-- rare architecture-authority escalation when Sol cannot responsibly settle the decision
+- rare architecture-authority escalation when the owning architecture workflow cannot responsibly settle the decision
 
 Agent-proposed Opus always requires explicit user approval.
 
@@ -557,7 +583,7 @@ High-risk artifact
       ↓
 DeepSeek adversary
       ↓
-GPT-5.6 Sol reconciliation
+owning workflow-model reconciliation
       ↓
 continue / revise / block
 ```
@@ -569,7 +595,7 @@ User: "Use Sonnet for this adversarial review"
       ↓
 Claude Sonnet adversary
       ↓
-GPT-5.6 Sol reconciliation
+owning workflow-model reconciliation
 ```
 
 The user's explicit request authorizes that specific paid Sonnet invocation.
@@ -582,7 +608,7 @@ User: "Use Opus for this adversarial review"
       ↓
 Claude Opus adversary
       ↓
-GPT-5.6 Sol reconciliation
+owning workflow-model reconciliation
 ```
 
 The user's explicit request authorizes that specific premium Opus invocation.
@@ -590,7 +616,7 @@ No DeepSeek or Sonnet pass is required unless the user asks for them.
 
 ### Agent-proposed Sonnet escalation
 
-After a DeepSeek pass, the Sol planner may propose Sonnet when material uncertainty remains and an independent model-family perspective would materially improve confidence.
+After a DeepSeek pass, the owning workflow model may propose Sonnet when material uncertainty remains and an independent model-family perspective would materially improve confidence.
 
 Before invoking it:
 
@@ -624,7 +650,20 @@ Claude findings are evidence, not authority.
 
 The owning workflow stage retains decision authority.
 
-## 6.4 Context-quality policy
+## 6.4 Smoke-test cost policy
+
+Smoke tests for this framework should default to **zero Anthropic API spend**.
+
+Use:
+
+- GPT-5.6 Sol/Luna for planning/reasoning paths
+- DeepSeek Flash for high-volume execution, verification, diagnosis, and default adversarial checks
+
+Do not invoke Claude Sonnet, Haiku, or Opus during smoke testing merely to prove that routing exists. Retain those capabilities for real project work or for a paid smoke test the user explicitly authorizes.
+
+For Claude routing itself, prefer static inspection of the configured aliases/agent model IDs and the Kilo model picker.
+
+## 6.5 Context-quality policy
 
 Do **not** shrink materially relevant context merely to save money or subscription usage.
 
@@ -781,6 +820,8 @@ means Terra authors and owns the spec, Claude Sonnet challenges it, and Terra re
 A user-directed adversary does not require a prior DeepSeek pass.
 
 When a paid Claude adversary is agent-proposed rather than user-selected, explicit approval is required.
+
+After findings return, specification reconciliation must be a focused `RECONCILE_ONLY` delta pass. It must not rerun decomposition or recreate unaffected specifications.
 
 ---
 
@@ -1372,6 +1413,19 @@ Priorities:
 
 Use the normal cost-controlled adversarial policy for high-risk decisions. GPT-5.6 Sol is the architecture model; DeepSeek is the default adversary.
 ```
+
+Smoke-test recommendation:
+
+```text
+/architect
+
+Design the production architecture for the latest approved PRD.
+Use GPT.
+
+Use the normal default DeepSeek adversary for high-risk decisions.
+```
+
+Use this GPT + DeepSeek path for routine smoke testing. Do not spend Claude credits just to validate orchestration.
 
 Independent workflow/adversary selection:
 

@@ -333,6 +333,17 @@ For `/architect` and `/spec`, keep **workflow model** and **adversary model** se
 
 For the dedicated `/adversarial-check` command, a model phrase selects the adversary model because adversarial review is the command's sole purpose.
 
+After an adversarial check, the owning architecture/specification workflow must perform a focused reconciliation pass, not restart the entire authoring workflow.
+
+When reconciliation is delegated to the model-selectable planning worker, use `MODE: RECONCILE_ONLY` and provide only:
+
+- the existing artifact path
+- affected ADR/spec paths
+- adversarial findings
+- the relevant contract/invariants
+
+Do not reload all discovery/PRD/repository context or regenerate unaffected artifacts unless a specific finding genuinely requires additional evidence.
+
 If the requested connected-provider model is unavailable, the workflow must fail clearly and ask the user to select an available model. Never silently substitute.
 
 The default routing below applies only when the user does not specify a model.
@@ -352,6 +363,16 @@ The default model strategy is:
 Claude is no longer a mandatory lifecycle dependency.
 
 User-directed requests for Sonnet or Opus are valid model choices for a specific review. Agent-proposed Claude usage requires explicit approval.
+
+## Smoke-Test Cost Policy
+
+Framework smoke tests must avoid metered Claude usage by default.
+
+Use GPT-5.6 Sol/Luna and DeepSeek to validate routing, orchestration, permissions, state transitions, TDD, diagnosis, verification, and review behavior.
+
+Claude Sonnet, Haiku, and Opus remain available for real work and explicit user-selected paid review, but they should not be invoked during smoke testing merely to prove the capability exists.
+
+Prefer static validation or non-Claude routing tests for Claude-capability checks.
 
 ## Context Quality
 
