@@ -711,7 +711,7 @@ It also prepares:
 - repository conventions
 - skill coverage, including `security-verification` when applicable
 - project waiver policy/non-waivable categories when defined
-- standard workflow artifact directories, including `docs/verification/`, `docs/verification/waivers/`, `docs/reviews/`, `docs/diagnostics/`, and `docs/workflow/`
+- standard workflow artifact directories, including `docs/verification/`, `docs/verification/waivers/`, `docs/verification/smoke/`, `docs/reviews/`, `docs/diagnostics/`, and `docs/workflow/`
 - a verbatim synchronized `docs/workflow/IMPLEMENTATION-STATE-EVIDENCE-V1.md`; inability to synchronize it exactly is a `PROJECT_INIT_BLOCKED` condition
 - initialization guidance
 
