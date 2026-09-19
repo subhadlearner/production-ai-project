@@ -906,17 +906,27 @@ docs/verification/
 
 A historical verification report is never overwritten merely to change its verdict.
 
-For a verification result to establish a reusable review gate, it must be bound to a stable implementation revision:
+For a verification result to establish a reusable review gate, it must be bound to an exact implementation-state fingerprint.
 
-- record current branch
-- record verified implementation HEAD commit SHA
-- record repository state before and after configured checks
-- require branch and HEAD to remain unchanged throughout verification
-- require no uncommitted/untracked non-evidence changes before or after checks
+Record:
 
-Workflow evidence paths such as `docs/verification/**`, `docs/reviews/**`, and `docs/diagnostics/**` do not invalidate implementation freshness by themselves.
+- current branch
+- verification base HEAD SHA
+- a normalized implementation-state manifest relative to that base HEAD
+- implementation-state fingerprint derived from the manifest
 
-If checks pass while implementation/spec/configuration or other non-evidence changes are uncommitted—or a verification command creates such changes—the factual result may still be `DONE`, but the delivery gate is `BLOCKED`. Commit the intended changes and rerun `/verify`.
+The manifest is built from the union of:
+
+- tracked paths whose current contents differ from the verification base HEAD
+- untracked, non-ignored paths
+
+For each path, excluding workflow evidence paths, record repository-relative path plus current Git blob/content hash, or `DELETED` when absent. Sort deterministically before computing/storing the fingerprint.
+
+Workflow evidence paths such as `docs/verification/**`, `docs/reviews/**`, and `docs/diagnostics/**` are excluded from the fingerprint.
+
+This deliberately supports review-before-commit. Uncommitted implementation work is valid when the effective-content fingerprint is unchanged before and after verification.
+
+If a verification command changes non-evidence contents, the factual result may still be `DONE`, but the delivery gate is `BLOCKED`. Rerun `/verify` against the new state.
 
 ### Verification result
 
@@ -986,8 +996,10 @@ Each report records:
 
 - verification ID
 - specification/change
-- branch and verified implementation commit SHA
-- repository state: `STABLE` or `UNSTABLE`, including any before/after branch/HEAD difference or non-evidence changed paths
+- branch
+- verification base HEAD SHA
+- implementation-state fingerprint
+- normalized implementation-state manifest
 - commands executed
 - exit status
 - concise evidence
@@ -1060,7 +1072,7 @@ WAIVER-SPEC-014-001.md
 A waiver must identify:
 
 - exact failed verification report
-- exact verified implementation commit
+- exact implementation-state fingerprint
 - exact failed checks
 - classification
 - human justification
@@ -1104,7 +1116,7 @@ It does **not** mean the failed check passed.
 
 Waived checks continue to execute on future verification runs.
 
-A waiver becomes invalid when it expires, the current branch/HEAD no longer matches the verified implementation revision, non-evidence implementation/spec/configuration changes exist, the failure set changes materially, or project policy no longer permits it.
+A waiver becomes invalid when it expires, the current effective non-evidence repository contents no longer reconstruct to the referenced implementation-state fingerprint, the failure set changes materially, or project policy no longer permits it. A later commit of the same verified contents does not invalidate the waiver by itself.
 
 A new `/verify` run does not silently inherit an old waiver.
 
@@ -1275,11 +1287,11 @@ Before invoking reviewers it must validate freshness:
 
 - verification scope matches the requested specification/change
 - verified branch matches current branch
-- verified implementation HEAD SHA equals current HEAD
-- verification recorded repository state `STABLE`
-- current working tree has no non-evidence changes
+- current effective non-evidence repository contents, reconstructed relative to the verification base HEAD, produce the exact persisted implementation-state fingerprint
 
-If any condition fails, `/review` stops and requires a fresh `/verify`.
+A later commit of the same verified contents is allowed. A matching HEAD is not sufficient when working-tree contents changed.
+
+If the fingerprint differs, `/review` stops and requires a fresh `/verify`.
 
 It proceeds only when the effective delivery gate is:
 
@@ -2147,7 +2159,7 @@ I know what is wrong but not why → /diagnose
                                │
                   ┌────────────┴─────────────┐
                   │                          │
-          DONE + stable revision          NOT_DONE
+     DONE + unchanged fingerprint        NOT_DONE
                   │                          │
                 CLEAR              ┌────────┼─────────┐
                   │                │        │         │
@@ -2245,7 +2257,7 @@ Before calling work complete:
 - TDD was used where applicable
 - high-risk decisions received adversarial review where required
 - difficult bugs were diagnosed before speculative fixing
-- persisted verification evidence exists and is fresh for the current specification/change, branch, HEAD revision, and non-evidence working-tree state
+- persisted verification evidence exists and its implementation-state fingerprint matches the current effective non-evidence repository contents
 - delivery gate is `CLEAR`, or an explicitly accepted `CLEAR_WITH_EXCEPTION` is permitted by project policy
 - any active waiver is current, scoped, human-authorized, and visible to review
 - a persisted review report exists under `docs/reviews/`
