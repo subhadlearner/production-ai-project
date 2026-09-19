@@ -905,6 +905,17 @@ docs/verification/
 
 A historical verification report is never overwritten merely to change its verdict.
 
+For a verification result to establish a reusable review gate, it must be bound to a stable implementation revision:
+
+- record current branch
+- record verified implementation HEAD commit SHA
+- record repository state at verification start
+- require no uncommitted/untracked non-evidence changes
+
+Workflow evidence paths such as `docs/verification/**`, `docs/reviews/**`, and `docs/diagnostics/**` do not invalidate implementation freshness by themselves.
+
+If checks pass while implementation/spec/configuration or other non-evidence changes are uncommitted, the factual result may still be `DONE`, but the delivery gate is `BLOCKED`. Commit the intended changes and rerun `/verify`.
+
 ### Verification result
 
 The factual result remains exactly:
@@ -1255,7 +1266,17 @@ Users normally run only:
 /review
 ```
 
-Review consumes the latest persisted verification report.
+Review consumes the latest **applicable** persisted verification report for the requested specification/change and branch.
+
+Before invoking reviewers it must validate freshness:
+
+- verification scope matches the requested specification/change
+- verified branch matches current branch
+- verified implementation HEAD SHA equals current HEAD
+- verification recorded repository state `STABLE`
+- current working tree has no non-evidence changes
+
+If any condition fails, `/review` stops and requires a fresh `/verify`.
 
 It proceeds only when the effective delivery gate is:
 
@@ -1353,7 +1374,10 @@ AI approval is not the final deterministic gate.
 Required order:
 
 ```text
-/verify → DONE → CLEAR
+fresh delivery gate
+CLEAR
+or
+CLEAR_WITH_EXCEPTION
        ↓
 /review → APPROVE
        ↓
@@ -2003,6 +2027,7 @@ I know what is wrong but not why → /diagnose
 | Implementation looks complete and needs deterministic proof | `/verify` |
 | Verification is NOT_DONE but I explicitly accept a bounded residual risk | `/waive` |
 | Verification/review found an obvious/local issue | `/fix` |
+| Verification evidence no longer matches current branch/HEAD/working tree | `/verify` |
 | A bug is hard, intermittent, concurrent, or unexplained | `/diagnose` |
 | A decision is unusually risky and needs a fresh challenge | `/adversarial-check` |
 | Delivery gate is CLEAR or CLEAR_WITH_EXCEPTION and code needs AI production review | `/review` |
@@ -2114,23 +2139,27 @@ I know what is wrong but not why → /diagnose
                                 ▼
                        ┌──────────────────┐
                        │ /verify          │
-                       │ deterministic    │
+                       │ persistent gate  │
                        └───────┬──────────┘
                                │
-                       ┌───────┴────────┐
-                       │                │
-                      DONE          NOT_DONE
-                       │                │
-                       │                ▼
-                       │        ┌──────────────┐
-                       │        │ /fix         │
-                       │        │ DeepSeek     │
-                       │        └──────┬───────┘
-                       │               │
-                       │               └──────→ /verify
-                       ▼
-                 ┌─────────────────┐
-                 │ /review         │
+                  ┌────────────┴─────────────┐
+                  │                          │
+          DONE + stable revision          NOT_DONE
+                  │                          │
+                CLEAR              ┌────────┼─────────┐
+                  │                │        │         │
+                  │              /fix   /diagnose   /waive
+                  │                │        │         │
+                  │                └──→ /fix│         │
+                  │                     │    │         │
+                  │                  /verify │         │
+                  │                          │   CLEAR_WITH_EXCEPTION
+                  │                          │         │
+                  └──────────────────────────┴─────────┘
+                                             │
+                                             ▼
+                                       ┌─────────────────┐
+                                       │ /review         │
                  └────────┬────────┘
                           ▼
               ┌────────────────────────┐
@@ -2213,7 +2242,7 @@ Before calling work complete:
 - TDD was used where applicable
 - high-risk decisions received adversarial review where required
 - difficult bugs were diagnosed before speculative fixing
-- persisted verification evidence exists
+- persisted verification evidence exists and is fresh for the current specification/change, branch, HEAD revision, and non-evidence working-tree state
 - delivery gate is `CLEAR`, or an explicitly accepted `CLEAR_WITH_EXCEPTION` is permitted by project policy
 - any active waiver is current, scoped, human-authorized, and visible to review
 - a persisted review report exists under `docs/reviews/`
