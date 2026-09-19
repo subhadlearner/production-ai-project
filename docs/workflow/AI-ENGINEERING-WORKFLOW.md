@@ -195,7 +195,7 @@ If the requested model is unavailable from the connected provider, the workflow 
 ### Defaults when no model is specified
 
 - GPT-5.6 Sol: `/grill`, `/prd`, `/architect`, `/spec`
-- GPT-5.6 Luna: `/project-init`
+- GPT-5.6 Luna: `/project-init` and `/smoke` orchestration
 - DeepSeek Flash: `/implement`, `/verify`, `/fix`, `/diagnose`, default adversary, pre-review
 - GPT-5.6 Sol: senior review
 
@@ -687,6 +687,173 @@ The optimization target is **relevant context density**, not minimum tokens.
 
 ---
 
+## Framework smoke validation
+
+`/smoke` is an auxiliary global command for validating the workflow framework itself against disposable fixtures.
+
+It is not a product lifecycle authority and does not replace `/grill`, `/prd`, `/architect`, `/project-init`, `/spec`, `/implement`, `/verify`, `/fix`, `/diagnose`, `/waive`, or `/review`.
+
+The smoke orchestrator preserves those underlying authority boundaries and their normal model routing.
+
+### Smoke profiles
+
+Two profiles exist:
+
+- `FAST` — low-cost validation for low-risk framework/configuration changes
+- `FULL` — complete milestone validation of lifecycle, recovery, evidence, review, and resume semantics
+
+Typical usage:
+
+```text
+/smoke FAST DEFAULT
+/smoke FULL DEFAULT
+/smoke STATUS <run-id>
+/smoke RESUME <run-id>
+```
+
+Current global fixture choices are:
+
+| Fixture | Profile | Purpose |
+| --- | --- | --- |
+| `fast-micro-library` | FAST | Cheapest lifecycle/evidence/fix validation |
+| `full-minimal-api` | FULL | Default complete workflow validation |
+| `full-local-persistence-api` | FULL | Optional persistence-oriented validation |
+
+Fixture definitions constrain product shape, test budget, source repository, and permitted failure recipes.
+
+They do **not** choose implementation technology. Language, runtime, framework, and concrete persistence technology remain owned by `/architect`.
+
+### Deterministic smoke policy registries
+
+The global Kilo configuration owns three machine-readable registries:
+
+```text
+smoke/fixtures.json
+smoke/profiles.json
+smoke/failure-recipes.json
+```
+
+They define:
+
+- approved fixture metadata
+- required/optional FAST and FULL scenario IDs
+- canonical safe failure-injection recipes and expected recovery routes
+
+The project repository does not duplicate those registries.
+
+It stores only run-specific evidence and the normal lifecycle artifacts generated while executing the smoke run.
+
+### Automatic Run IDs
+
+New smoke runs receive an automatically generated identifier:
+
+```text
+SMOKE-<PROFILE>-<fixture-id>-<SEQ>
+```
+
+The numeric sequence is padded to at least three digits:
+
+```text
+SMOKE-FAST-fast-micro-library-001
+SMOKE-FULL-full-minimal-api-001
+SMOKE-FULL-full-minimal-api-002
+```
+
+The sequence may continue past `999`.
+
+The active Run ID is shown in every smoke response.
+
+### Persistent run state
+
+Smoke runs persist restartable state under:
+
+```text
+docs/verification/smoke/<run-id>.md
+```
+
+The same file is:
+
+- the current run-state record
+- the `/smoke STATUS` data source
+- the `/smoke RESUME` continuation authority
+- the final smoke scenario/cost/outcome report
+
+Do not create a second duplicate top-level smoke report.
+
+The run record tracks, where available:
+
+- profile and fixture
+- release/configuration SHA
+- target branch/worktree and baseline HEAD
+- current stage/scenario
+- required/completed/pending scenario IDs
+- latest verification result, delivery gate, and freshness
+- latest review result
+- model invocation ledger
+- observed cost
+- blockers/user action
+- final result
+
+### STATUS and RESUME
+
+`/smoke STATUS <run-id>` is read-only.
+
+It must not inject failures, mutate the repository, execute lifecycle stages, or invoke reviewer/subagent models.
+
+It reports the current stage, progress, evidence state, model/cost ledger, blocker, and exact next action.
+
+`/smoke RESUME <run-id>` reconstructs continuation from the persisted run record plus current repository evidence.
+
+It must not depend on previous chat history.
+
+### Recovery flows exercised by FULL smoke
+
+The FULL profile validates recovery paths including:
+
+```text
+/verify
+→ NOT_DONE
+→ /fix
+→ /verify
+→ DONE + CLEAR + MATCH
+→ /review
+```
+
+```text
+/verify
+→ NOT_DONE
+→ /diagnose
+→ DIAGNOSIS_READY
+→ /fix
+→ /verify
+→ DONE + CLEAR + MATCH
+→ /review
+```
+
+and the bounded exception path:
+
+```text
+/verify
+→ NOT_DONE
+→ /waive
+→ CLEAR_WITH_EXCEPTION
+→ /review
+```
+
+Failure injection is performed only through registered safe recipes in a disposable project.
+
+The Luna smoke orchestrator does not directly author implementation defects; smoke-only fixture mutations are delegated to the DeepSeek smoke executor.
+
+### Cost discipline
+
+Smoke validation should use the smallest fixture and lowest test layer that proves the workflow behavior.
+
+Do not add broad integration, E2E, cloud, browser, load, or external-service infrastructure unless the selected fixture or the framework change specifically requires it.
+
+Claude runtime calls are zero by default.
+
+The global smoke policy owns fixture/profile/failure-recipe selection. The project repository owns the generated run-state evidence and normal lifecycle artifacts.
+
 ## 7. `/project-init` — Operationalize the Architecture
 
 ### Purpose
@@ -711,7 +878,7 @@ It also prepares:
 - repository conventions
 - skill coverage, including `security-verification` when applicable
 - project waiver policy/non-waivable categories when defined
-- standard workflow artifact directories, including `docs/verification/`, `docs/verification/waivers/`, `docs/reviews/`, `docs/diagnostics/`, and `docs/workflow/`
+- standard workflow artifact directories, including `docs/verification/`, `docs/verification/waivers/`, `docs/verification/smoke/`, `docs/reviews/`, `docs/diagnostics/`, and `docs/workflow/`
 - a verbatim synchronized `docs/workflow/IMPLEMENTATION-STATE-EVIDENCE-V1.md`; inability to synchronize it exactly is a `PROJECT_INIT_BLOCKED` condition
 - initialization guidance
 

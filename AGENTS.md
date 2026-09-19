@@ -172,6 +172,8 @@ The authority chain is:
 
 `/adversarial-check` challenges high-risk artifacts but does not replace the authority of `/prd`, `/architect`, `/spec`, `/verify`, or `/review`.
 
+`/smoke` is an auxiliary framework-validation command. It does not become a product lifecycle authority. It may orchestrate FAST/FULL validation against disposable fixtures while preserving the normal lifecycle commands, model routing, evidence rules, and blocked-state ownership.
+
 `/project-init`, `/spec`, `/implement`, `/verify`, `/fix`, and `/review` must not independently replace the approved technology stack.
 
 If a required technology decision is missing, return to architecture rather than guessing.
@@ -209,8 +211,11 @@ It must also ensure the standard workflow artifact directories exist, including:
 - `docs/diagnostics/`
 - `docs/verification/`
 - `docs/verification/waivers/`
+- `docs/verification/smoke/`
 - `docs/reviews/`
 - `docs/workflow/`
+
+`docs/verification/smoke/` is reserved for restartable `/smoke` run-state records such as `SMOKE-FULL-full-minimal-api-001.md`. Smoke-run records are workflow evidence, not implementation authority, and remain inside the Contract-v1 evidence exclusion set.
 
 `/project-init` must also ensure `docs/workflow/IMPLEMENTATION-STATE-EVIDENCE-V1.md` exists and is synchronized verbatim with the global canonical Stable-v1 contract. If the canonical source is unavailable or exact synchronization cannot be established, project initialization must fail closed with `PROJECT_INIT_BLOCKED`.
 
@@ -385,7 +390,7 @@ The default routing below applies only when the user does not specify a model.
 The default model strategy is:
 
 - GPT-5.6 Sol: `/grill`, `/prd`, `/architect`, `/spec`, adversarial reconciliation, and senior code review
-- GPT-5.6 Luna: `/project-init` and lightweight Ask/documentation work
+- GPT-5.6 Luna: `/project-init`, `/smoke` orchestration, and lightweight Ask/documentation work
 - DeepSeek Flash: `/implement`, `/verify`, `/fix`, `/diagnose`, default adversarial review, and pre-review
 - Claude Haiku 4.5: optional lower-cost Claude-family choice for bounded work that fits its context window
 - Claude Sonnet: optional paid independent model-family second opinion
