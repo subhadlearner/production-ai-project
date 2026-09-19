@@ -614,7 +614,7 @@ RUN_VERIFY
    ↓
 /verify
    │
-   ├── DONE
+   ├── DONE + stable revision
    │     ↓
    │   Delivery Gate: CLEAR
    │     ↓
