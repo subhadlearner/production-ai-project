@@ -1359,7 +1359,7 @@ For parallel mutating specifications:
 - one worktree per concurrently mutating spec
 - avoid multiple agents modifying the same files concurrently
 
-`/fix`, `/verify`, and `/review` stay on the existing implementation branch.
+`/fix`, `/verify`, `/waive`, and `/review` stay on the existing implementation branch.
 
 ---
 
