@@ -204,7 +204,7 @@ Every non-trivial `/verify` run creates a new history-preserving report under:
 
 `docs/verification/`
 
-Reusable verification evidence is tied to the requested specification/change, branch, and verified implementation HEAD commit. To establish `Delivery Gate: CLEAR`, the implementation must be at a stable revision with no uncommitted/untracked non-evidence changes. If implementation/spec/configuration changes are uncommitted, checks may still report factual `DONE`, but review remains blocked until those changes are committed and `/verify` is rerun.
+Reusable verification evidence is tied to the requested specification/change, branch, and verified implementation HEAD commit. To establish `Delivery Gate: CLEAR`, the branch/HEAD must remain unchanged throughout verification and there must be no uncommitted/untracked non-evidence changes before or after the configured checks run. If implementation/spec/configuration changes are uncommitted—or a verification command creates such changes—checks may still report factual `DONE`, but review remains blocked until those changes are committed and `/verify` is rerun.
 
 Verification remains factual:
 
