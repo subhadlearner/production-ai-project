@@ -711,6 +711,7 @@ It also prepares:
 - repository conventions
 - skill coverage, including `security-verification` when applicable
 - project waiver policy/non-waivable categories when defined
+- standard workflow artifact directories, including `docs/verification/`, `docs/verification/waivers/`, `docs/reviews/`, and `docs/diagnostics/`
 - initialization guidance
 
 ### Skill Coverage Matrix
@@ -905,6 +906,28 @@ docs/verification/
 
 A historical verification report is never overwritten merely to change its verdict.
 
+For a verification result to establish a reusable review gate, it must be bound to an exact implementation-state fingerprint.
+
+Record:
+
+- current branch
+- verification base HEAD SHA
+- a normalized implementation-state manifest relative to that base HEAD
+- implementation-state fingerprint derived from the manifest
+
+The manifest is built from the union of:
+
+- tracked paths whose current contents differ from the verification base HEAD
+- untracked, non-ignored paths
+
+For each path, excluding workflow evidence paths, record repository-relative path plus current Git blob/content hash, or `DELETED` when absent. Sort deterministically before computing/storing the fingerprint.
+
+Workflow evidence paths such as `docs/verification/**`, `docs/reviews/**`, and `docs/diagnostics/**` are excluded from the fingerprint.
+
+This deliberately supports review-before-commit. Uncommitted implementation work is valid when the effective-content fingerprint is unchanged before and after verification.
+
+If a verification command changes non-evidence contents, the factual result may still be `DONE`, but the delivery gate is `BLOCKED`. Rerun `/verify` against the new state.
+
 ### Verification result
 
 The factual result remains exactly:
@@ -973,7 +996,10 @@ Each report records:
 
 - verification ID
 - specification/change
-- branch and commit when available
+- branch
+- verification base HEAD SHA
+- implementation-state fingerprint
+- normalized implementation-state manifest
 - commands executed
 - exit status
 - concise evidence
@@ -1046,7 +1072,7 @@ WAIVER-SPEC-014-001.md
 A waiver must identify:
 
 - exact failed verification report
-- exact commit when available
+- exact implementation-state fingerprint
 - exact failed checks
 - classification
 - human justification
@@ -1090,7 +1116,7 @@ It does **not** mean the failed check passed.
 
 Waived checks continue to execute on future verification runs.
 
-A waiver becomes invalid when it expires, the source commit changes, the failure set changes materially, or project policy no longer permits it.
+A waiver becomes invalid when it expires, the current effective non-evidence repository contents no longer reconstruct to the referenced implementation-state fingerprint, the failure set changes materially, or project policy no longer permits it. A later commit of the same verified contents does not invalidate the waiver by itself.
 
 A new `/verify` run does not silently inherit an old waiver.
 
@@ -1236,7 +1262,7 @@ A review report records:
 
 - review ID
 - specification/change
-- branch and commit when available
+- branch and reviewed implementation commit SHA
 - persisted verification report used
 - effective delivery gate
 - active waiver when applicable
@@ -1255,7 +1281,17 @@ Users normally run only:
 /review
 ```
 
-Review consumes the latest persisted verification report.
+Review consumes the latest **applicable** persisted verification report for the requested specification/change and branch.
+
+Before invoking reviewers it must validate freshness:
+
+- verification scope matches the requested specification/change
+- verified branch matches current branch
+- current effective non-evidence repository contents, reconstructed relative to the verification base HEAD, produce the exact persisted implementation-state fingerprint
+
+A later commit of the same verified contents is allowed. A matching HEAD is not sufficient when working-tree contents changed.
+
+If the fingerprint differs, `/review` stops and requires a fresh `/verify`.
 
 It proceeds only when the effective delivery gate is:
 
@@ -1353,7 +1389,10 @@ AI approval is not the final deterministic gate.
 Required order:
 
 ```text
-/verify → DONE → CLEAR
+fresh delivery gate
+CLEAR
+or
+CLEAR_WITH_EXCEPTION
        ↓
 /review → APPROVE
        ↓
@@ -2003,6 +2042,7 @@ I know what is wrong but not why → /diagnose
 | Implementation looks complete and needs deterministic proof | `/verify` |
 | Verification is NOT_DONE but I explicitly accept a bounded residual risk | `/waive` |
 | Verification/review found an obvious/local issue | `/fix` |
+| Verification evidence no longer matches current branch/HEAD/working tree | `/verify` |
 | A bug is hard, intermittent, concurrent, or unexplained | `/diagnose` |
 | A decision is unusually risky and needs a fresh challenge | `/adversarial-check` |
 | Delivery gate is CLEAR or CLEAR_WITH_EXCEPTION and code needs AI production review | `/review` |
@@ -2114,25 +2154,29 @@ I know what is wrong but not why → /diagnose
                                 ▼
                        ┌──────────────────┐
                        │ /verify          │
-                       │ deterministic    │
+                       │ persistent gate  │
                        └───────┬──────────┘
                                │
-                       ┌───────┴────────┐
-                       │                │
-                      DONE          NOT_DONE
-                       │                │
-                       │                ▼
-                       │        ┌──────────────┐
-                       │        │ /fix         │
-                       │        │ DeepSeek     │
-                       │        └──────┬───────┘
-                       │               │
-                       │               └──────→ /verify
-                       ▼
-                 ┌─────────────────┐
-                 │ /review         │
-                 └────────┬────────┘
-                          ▼
+                  ┌────────────┴─────────────┐
+                  │                          │
+     DONE + unchanged fingerprint        NOT_DONE
+                  │                          │
+                CLEAR              ┌────────┼─────────┐
+                  │                │        │         │
+                  │              /fix   /diagnose   /waive
+                  │                │        │         │
+                  │                └──→ /fix│         │
+                  │                     │    │         │
+                  │                  /verify │         │
+                  │                          │   CLEAR_WITH_EXCEPTION
+                  │                          │         │
+                  └──────────────────────────┴─────────┘
+                                             │
+                                             ▼
+                                       ┌─────────────────┐
+                                       │ /review         │
+                                       └────────┬────────┘
+                                                ▼
               ┌────────────────────────┐
               │ DeepSeek pre-reviewer  │
               └──────────┬─────────────┘
@@ -2213,7 +2257,7 @@ Before calling work complete:
 - TDD was used where applicable
 - high-risk decisions received adversarial review where required
 - difficult bugs were diagnosed before speculative fixing
-- persisted verification evidence exists
+- persisted verification evidence exists and its implementation-state fingerprint matches the current effective non-evidence repository contents
 - delivery gate is `CLEAR`, or an explicitly accepted `CLEAR_WITH_EXCEPTION` is permitted by project policy
 - any active waiver is current, scoped, human-authorized, and visible to review
 - a persisted review report exists under `docs/reviews/`

@@ -19,8 +19,9 @@ The standard lifecycle is:
 5. `/spec`
 6. `/implement`
 7. `/verify`
-8. `/waive` only when the human owner explicitly accepts a bounded failed verification risk
-9. `/review`
+8. `/review`
+
+`/waive` is an exception path used only when `/verify` is `NOT_DONE` and the human owner explicitly accepts a bounded residual risk.
 
 For difficult defects use `/diagnose → /fix → /verify`.
 
@@ -58,7 +59,7 @@ PRD_READY
   ├─ NOT_DONE + explicit human risk acceptance → /waive
   │                                              ↓
   │                                   CLEAR_WITH_EXCEPTION
-  └─ DONE → CLEAR
+  └─ DONE + unchanged verified fingerprint → CLEAR
        ↓
      /review
        ↓
@@ -108,6 +109,8 @@ It synchronizes the approved architecture into:
 - `README.md`
 - `.kilo/rules/`
 - `.kilo/skills/`
+
+It also ensures the standard workflow artifact directories exist, including `docs/verification/`, `docs/verification/waivers/`, `docs/reviews/`, and `docs/diagnostics/`.
 
 If required technology decisions are missing, `/project-init` must stop instead of guessing.
 
@@ -201,6 +204,12 @@ Every non-trivial `/verify` run creates a new history-preserving report under:
 
 `docs/verification/`
 
+Reusable verification evidence is tied to the requested specification/change, branch, verification base HEAD, and an implementation-state fingerprint. The fingerprint is built from a normalized manifest of all non-evidence tracked differences plus untracked, non-ignored paths relative to the base HEAD.
+
+This intentionally supports review-before-commit. Uncommitted implementation work may still establish `Delivery Gate: CLEAR` when the fingerprint remains unchanged throughout verification.
+
+If a verification command changes non-evidence contents, checks may still report factual `DONE`, but the delivery gate remains `BLOCKED` until `/verify` is rerun against the new state.
+
 Verification remains factual:
 
 - `DONE` means all required applicable checks and acceptance criteria passed
@@ -216,6 +225,8 @@ When the human owner deliberately accepts a bounded residual risk, use `/waive`.
 `docs/verification/waivers/`
 
 A valid waiver may establish `Delivery Gate: CLEAR_WITH_EXCEPTION` so review can proceed with both the failed evidence and accepted risk visible. The failed verification remains `NOT_DONE`, and the failed check continues to execute.
+
+`/review` also validates evidence freshness before invoking reviewers by reconstructing the current effective non-evidence contents from the verification report's base HEAD and comparing the resulting fingerprint. A later commit of identical verified contents is allowed; any content mismatch requires a fresh `/verify`.
 
 Normal repair flow:
 
@@ -240,15 +251,18 @@ RUN_VERIFY
    ↓
 /verify
    │
-   ├── DONE ─────────────→ /review
+   ├── DONE + unchanged verified fingerprint → CLEAR → /review
    │
    └── NOT_DONE
-          ↓
-        /fix
-          ↓
-       RUN_VERIFY
-          ↓
-        /verify
+          ├── understood defect → /fix → /verify
+          ├── unclear/intermittent → /diagnose → /fix → /verify
+          └── explicit bounded human risk acceptance
+                    ↓
+                  /waive
+                    ↓
+          CLEAR_WITH_EXCEPTION
+                    ↓
+                 /review
 ```
 
 `/fix` is also used when review finds blocking issues:
@@ -329,9 +343,11 @@ If pre-review returns `CHANGES_REQUIRED`, the report is still written and record
 
 Subsequent review runs create new numbered artifacts instead of overwriting previous reports. These reports are the durable handoff into `/fix`.
 
+`/fix` selects the latest **applicable** review/verification/diagnosis evidence for the requested specification/change and branch, not merely the newest artifact in the repository.
+
 ## Review Model
 
-The review pipeline is cost-controlled and consumes the latest persisted verification report. If the delivery gate is `CLEAR_WITH_EXCEPTION`, it also receives the exact active waiver. Reviewers may still reject an unsafe, stale, misclassified, or out-of-policy waiver.
+The review pipeline is cost-controlled and consumes the latest **applicable, fresh** persisted verification report for the requested specification/change and branch. If the delivery gate is `CLEAR_WITH_EXCEPTION`, it also receives the exact active waiver. Reviewers may still reject an unsafe, stale, misclassified, or out-of-policy waiver.
 
 The review pipeline is:
 
