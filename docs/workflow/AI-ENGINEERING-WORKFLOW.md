@@ -985,7 +985,8 @@ Each report records:
 
 - verification ID
 - specification/change
-- branch and commit when available
+- branch and verified implementation commit SHA
+- repository state at verification start: `STABLE` or `UNSTABLE`
 - commands executed
 - exit status
 - concise evidence
@@ -1248,7 +1249,7 @@ A review report records:
 
 - review ID
 - specification/change
-- branch and commit when available
+- branch and reviewed implementation commit SHA
 - persisted verification report used
 - effective delivery gate
 - active waiver when applicable
