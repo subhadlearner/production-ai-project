@@ -59,7 +59,7 @@ PRD_READY
   ├─ NOT_DONE + explicit human risk acceptance → /waive
   │                                              ↓
   │                                   CLEAR_WITH_EXCEPTION
-  └─ DONE → CLEAR
+  └─ DONE + stable revision → CLEAR
        ↓
      /review
        ↓
