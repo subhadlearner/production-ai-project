@@ -210,6 +210,9 @@ It must also ensure the standard workflow artifact directories exist, including:
 - `docs/verification/`
 - `docs/verification/waivers/`
 - `docs/reviews/`
+- `docs/workflow/`
+
+`/project-init` must also ensure `docs/workflow/IMPLEMENTATION-STATE-EVIDENCE-V1.md` exists and is synchronized verbatim with the global canonical Stable-v1 contract. If the canonical source is unavailable or exact synchronization cannot be established, project initialization must fail closed with `PROJECT_INIT_BLOCKED`.
 
 `/project-init` must not implement application functionality.
 
@@ -485,7 +488,7 @@ Do not classify a missing required test as `NOT_APPLICABLE` merely because it ha
 
 ## Verification Workflow
 
-`/verify` provides deterministic evidence about the implementation and applies `docs/workflow/IMPLEMENTATION-STATE-EVIDENCE-V1.md`. The canonical implementation-state manifest is authoritative; the fingerprint is its compact checksum/identifier. The implementation may be uncommitted.
+`/verify` provides deterministic evidence about the implementation and applies `docs/workflow/IMPLEMENTATION-STATE-EVIDENCE-V1.md`. The canonical implementation-state manifest is authoritative and includes path, effective Git mode/type, and content/blob identity; the fingerprint is its compact checksum/identifier. The implementation may be uncommitted.
 
 Verification must use the actual project commands defined in this file or repository configuration.
 
@@ -514,7 +517,7 @@ For evidence to establish `Delivery Gate: CLEAR`, the report must record:
 - implementation-state fingerprint
 - freshness outcome: `MATCH`, `MISMATCH`, or `UNRECONSTRUCTABLE`
 
-The manifest is canonicalized exactly under Contract v1 from all non-evidence tracked differences plus untracked, non-ignored paths relative to the verification base HEAD.
+The manifest is canonicalized exactly under Contract v1 from all non-evidence tracked differences plus untracked, non-ignored paths relative to the verification base HEAD, including effective Git mode/type so executable-bit, symlink, and gitlink changes are identity-bearing.
 
 The normative workflow evidence exclusion set is:
 
