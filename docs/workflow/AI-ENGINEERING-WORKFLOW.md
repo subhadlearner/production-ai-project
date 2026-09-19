@@ -910,12 +910,13 @@ For a verification result to establish a reusable review gate, it must be bound 
 
 - record current branch
 - record verified implementation HEAD commit SHA
-- record repository state at verification start
-- require no uncommitted/untracked non-evidence changes
+- record repository state before and after configured checks
+- require branch and HEAD to remain unchanged throughout verification
+- require no uncommitted/untracked non-evidence changes before or after checks
 
 Workflow evidence paths such as `docs/verification/**`, `docs/reviews/**`, and `docs/diagnostics/**` do not invalidate implementation freshness by themselves.
 
-If checks pass while implementation/spec/configuration or other non-evidence changes are uncommitted, the factual result may still be `DONE`, but the delivery gate is `BLOCKED`. Commit the intended changes and rerun `/verify`.
+If checks pass while implementation/spec/configuration or other non-evidence changes are uncommitted—or a verification command creates such changes—the factual result may still be `DONE`, but the delivery gate is `BLOCKED`. Commit the intended changes and rerun `/verify`.
 
 ### Verification result
 
@@ -986,7 +987,7 @@ Each report records:
 - verification ID
 - specification/change
 - branch and verified implementation commit SHA
-- repository state at verification start: `STABLE` or `UNSTABLE`
+- repository state: `STABLE` or `UNSTABLE`, including any before/after branch/HEAD difference or non-evidence changed paths
 - commands executed
 - exit status
 - concise evidence
