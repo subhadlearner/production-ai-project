@@ -912,7 +912,7 @@ Record:
 
 - current branch
 - verification base HEAD SHA
-- a normalized implementation-state manifest relative to that base HEAD
+- a canonical implementation-state manifest relative to that base HEAD
 - implementation-state fingerprint derived from the manifest
 
 The manifest is built from the union of:
@@ -1005,7 +1005,7 @@ Each report records:
 - branch
 - verification base HEAD SHA
 - implementation-state fingerprint
-- normalized implementation-state manifest
+- canonical implementation-state manifest
 - commands executed
 - exit status
 - concise evidence
