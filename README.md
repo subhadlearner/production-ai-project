@@ -204,9 +204,9 @@ Every non-trivial `/verify` run creates a new history-preserving report under:
 
 `docs/verification/`
 
-Reusable verification evidence is tied to the requested specification/change, branch, verification base HEAD, and an implementation-state fingerprint. The fingerprint is built from a normalized manifest of all non-evidence tracked differences plus untracked, non-ignored paths relative to the base HEAD.
+Reusable verification evidence follows `docs/workflow/IMPLEMENTATION-STATE-EVIDENCE-V1.md`. The canonical implementation-state manifest is the authoritative identity of all non-evidence tracked differences plus untracked, non-ignored paths relative to the verification base HEAD; the fingerprint is only a compact checksum/identifier.
 
-This intentionally supports review-before-commit. Uncommitted implementation work may still establish `Delivery Gate: CLEAR` when the fingerprint remains unchanged throughout verification.
+This intentionally supports review-before-commit. Uncommitted implementation work may establish `Delivery Gate: CLEAR` only when the pre/post canonical manifests are an exact `MATCH`. `MISMATCH` or `UNRECONSTRUCTABLE` fails closed.
 
 If a verification command changes non-evidence contents, checks may still report factual `DONE`, but the delivery gate remains `BLOCKED` until `/verify` is rerun against the new state.
 
@@ -226,7 +226,7 @@ When the human owner deliberately accepts a bounded residual risk, use `/waive`.
 
 A valid waiver may establish `Delivery Gate: CLEAR_WITH_EXCEPTION` so review can proceed with both the failed evidence and accepted risk visible. The failed verification remains `NOT_DONE`, and the failed check continues to execute.
 
-`/review` also validates evidence freshness before invoking reviewers by reconstructing the current effective non-evidence contents from the verification report's base HEAD and comparing the resulting fingerprint. A later commit of identical verified contents is allowed; any content mismatch requires a fresh `/verify`.
+`/review` validates evidence freshness under Contract v1 before invoking reviewers. It reconstructs the current canonical manifest from the verification report's base HEAD and requires byte-for-byte manifest equality. A later commit of identical verified contents is allowed. `MISMATCH`, `UNRECONSTRUCTABLE`, malformed evidence, or unavailable reconstruction inputs require a fresh `/verify`.
 
 Normal repair flow:
 
@@ -347,7 +347,7 @@ Subsequent review runs create new numbered artifacts instead of overwriting prev
 
 ## Review Model
 
-The review pipeline is cost-controlled and consumes the latest **applicable, fresh** persisted verification report for the requested specification/change and branch. If the delivery gate is `CLEAR_WITH_EXCEPTION`, it also receives the exact active waiver. Reviewers may still reject an unsafe, stale, misclassified, or out-of-policy waiver.
+The review pipeline is cost-controlled and consumes the latest **applicable, Contract-v1-fresh** persisted verification report for the requested specification/change and branch. If the delivery gate is `CLEAR_WITH_EXCEPTION`, it also receives the exact active waiver bound to that verification report/canonical manifest/fingerprint/failure set. Reviewers may still reject an unsafe, stale, misclassified, or out-of-policy waiver.
 
 The review pipeline is:
 

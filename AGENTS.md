@@ -485,7 +485,7 @@ Do not classify a missing required test as `NOT_APPLICABLE` merely because it ha
 
 ## Verification Workflow
 
-`/verify` provides deterministic evidence about the implementation and binds reusable verification evidence to an exact implementation-state fingerprint. The implementation may be uncommitted.
+`/verify` provides deterministic evidence about the implementation and applies `docs/workflow/IMPLEMENTATION-STATE-EVIDENCE-V1.md`. The canonical implementation-state manifest is authoritative; the fingerprint is its compact checksum/identifier. The implementation may be uncommitted.
 
 Verification must use the actual project commands defined in this file or repository configuration.
 
@@ -509,14 +509,22 @@ For evidence to establish `Delivery Gate: CLEAR`, the report must record:
 
 - current branch
 - verification base HEAD SHA
-- normalized implementation-state manifest
+- evidence contract version: `implementation-state-evidence-v1`
+- canonical implementation-state manifest
 - implementation-state fingerprint
+- freshness outcome: `MATCH`, `MISMATCH`, or `UNRECONSTRUCTABLE`
 
-The manifest captures all non-evidence tracked differences plus untracked, non-ignored paths relative to the verification base HEAD as repository-relative path + content hash, or `DELETED`.
+The manifest is canonicalized exactly under Contract v1 from all non-evidence tracked differences plus untracked, non-ignored paths relative to the verification base HEAD.
 
-Workflow evidence paths such as `docs/verification/**`, `docs/reviews/**`, and `docs/diagnostics/**` are excluded from the fingerprint.
+The normative workflow evidence exclusion set is:
 
-Normal uncommitted implementation work is allowed. The delivery gate may be `CLEAR` when the implementation-state fingerprint remains unchanged throughout verification.
+- `docs/verification/**`
+- `docs/reviews/**`
+- `docs/diagnostics/**`
+
+No workflow stage may independently add exclusions.
+
+Normal uncommitted implementation work is allowed. The delivery gate may be `CLEAR` only when pre/post canonical manifests are an exact `MATCH`. `MISMATCH` or `UNRECONSTRUCTABLE` fails closed and requires a fresh `/verify`.
 
 If a verification command changes non-evidence contents, the factual verification result may still be `DONE`, but the delivery gate is `BLOCKED` until `/verify` is rerun against the new state.
 
@@ -665,13 +673,13 @@ Completed review reports are never overwritten. Each new review run creates a ne
 Review occurs when the effective delivery gate is:
 
 - `CLEAR` from a fresh `DONE` verification report, or
-- `CLEAR_WITH_EXCEPTION` from a valid human-authorized waiver tied to the exact fresh `NOT_DONE` verification report/implementation-state fingerprint/failure set.
+- `CLEAR_WITH_EXCEPTION` from a valid human-authorized waiver tied to the exact fresh `NOT_DONE` verification report/canonical manifest/implementation-state fingerprint/failure set.
 
 Before invoking reviewers, `/review` must prove that:
 
 - the requested specification/change matches
 - current branch matches
-- the current effective non-evidence repository contents reconstruct to the exact persisted implementation-state fingerprint
+- Contract v1 freshness is `MATCH`: the current canonical implementation-state manifest is byte-for-byte identical to the persisted canonical manifest
 
 A later commit of the same verified contents does not invalidate verification by itself. A matching HEAD does not make evidence fresh if working-tree contents differ.
 
@@ -732,7 +740,7 @@ A specification is complete only when:
 
 - implementation is complete
 - required applicable tests exist
-- persisted verification evidence exists and its implementation-state fingerprint exactly matches the current effective non-evidence repository contents
+- persisted verification evidence exists and Contract v1 freshness is `MATCH`; fingerprint equality alone is insufficient
 - delivery gate is `CLEAR`, or an explicitly accepted `CLEAR_WITH_EXCEPTION` is permitted by project policy
 - `/review` reaches `APPROVE`
 - CI passes
@@ -774,7 +782,7 @@ Use the global `security-verification` skill when security verification is appli
 Waivers must:
 
 - be explicitly human-authorized
-- reference the exact failed verification report and implementation-state fingerprint
+- reference the exact failed verification report, its authoritative canonical manifest, and implementation-state fingerprint
 - identify exact failed checks
 - state classification, justification, residual risk, compensating controls, remediation, and expiry
 - remain separate from verification evidence
